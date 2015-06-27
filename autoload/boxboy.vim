@@ -1,7 +1,7 @@
 " A game like boxboy(hacoboy)
 " Version: 0.80
 " Author: U-MA
-" Lisence: VIM LISENCE
+" Lisence: VIM LIAENCE
 
 let s:save_cpo = &cpo
 set cpo&vim
@@ -194,6 +194,15 @@ endfunction
 
 " main {{{
 
+function! s:restart() abort
+  %delete " buffer clear
+  for l:i in readfile('./autoload/stages/stage0.txt')
+    call setline(line('$')+1, l:i)
+  endfor
+  call s:move_cursor_to_start()
+  call s:set_player_to_cursor()
+endfunction
+
 function! s:main() abort
   tabnew boxboy
   %delete " buffer clear
@@ -209,6 +218,7 @@ function! s:main() abort
   nnoremap <silent><buffer><nowait> l       :call <SID>key_events('l')<CR>
   nnoremap <silent><buffer><nowait> <space> :call <SID>key_events(' ')<CR>
   nnoremap <silent><buffer><nowait> t       :call <SID>toggle_mode()<CR>
+  nnoremap <silent><buffer><nowait> r       :call <SID>restart()<CR>
 
   augroup BoxBoy
     autocmd!
