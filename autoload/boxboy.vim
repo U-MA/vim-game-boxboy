@@ -6,6 +6,22 @@
 let s:save_cpo = &cpo
 set cpo&vim
 
+" Player mode {{{
+" mode
+"   0: player move mode
+"   1: block  move mode
+let s:mode = 0
+
+function! s:toggle_mode() abort
+  if s:mode
+    echo 'PLAYER MOVE MODE'
+    let s:mode = 0
+  else
+    echo 'BLOCK GENERATE MODE'
+    let s:mode = 1
+  endif
+  endfunction
+" }}}
 
 " Objects {{{
 
@@ -20,7 +36,8 @@ endfunction
 "}}}
 
 " blocks {{{
-  let s:blocks = [ '=' ]
+  let s:block_ch = '#'
+  let s:blocks = [ '=', '#' ]
 " }}}
 
 "}}}
@@ -70,6 +87,7 @@ function! s:getchar_on(dir) abort
     return getline(line('.')-1)[col('.')-1]
   elseif a:dir ==# 'l'
     return getline('.')[col('.')]
+  endif
 endfunction
 
 function! s:is_block(ch) abort
@@ -85,6 +103,30 @@ endfunction
 function! s:is_movable(dir) abort
   let c = s:getchar_on(a:dir)
   return !s:is_block(c)
+endfunction
+
+" }}}
+
+" Block generater{{{
+
+function! s:generate_block(dir) abort
+  if a:dir ==# 'h'
+    if s:is_movable(a:dir)
+      execute 'normal! hr' . s:block_ch
+      execute 'normal! l'
+    endif
+  elseif a:dir ==# 'j'
+  elseif a:dir ==# 'k'
+    if s:is_movable(a:dir)
+      execute 'normal! kr' . s:block_ch
+      execute 'normal! j'
+    endif
+  elseif a:dir ==# 'l'
+    if s:is_movable(a:dir)
+      execute 'normal! lr' . s:block_ch
+      execute 'normal! h'
+    endif
+  endif
 endfunction
 
 " }}}
@@ -125,15 +167,27 @@ function! s:jump() abort
 endfunction
 
 function! s:key_events(key) abort
-  if a:key ==# 'l'
-    call s:right()
-    call s:down()
-  elseif a:key ==# 'h'
-    call s:left()
-    call s:down()
-  elseif a:key ==# ' '
-    call s:jump()
-    call s:down()
+  if s:mode " block generate
+    if a:key ==# 'h'
+      call s:generate_block('h')
+    elseif a:key ==# 'j'
+      call s:generate_block('j')
+    elseif a:key ==# 'k'
+      call s:generate_block('k')
+    elseif a:key ==# 'l'
+      call s:generate_block('l')
+    endif
+  else "player move
+    if a:key ==# 'l'
+      call s:right()
+      call s:down()
+    elseif a:key ==# 'h'
+      call s:left()
+      call s:down()
+    elseif a:key ==# ' '
+      call s:jump()
+      call s:down()
+    endif
   endif
 endfunction
 "}}}
@@ -150,10 +204,11 @@ function! s:main() abort
   call s:set_player_to_cursor()
 
   nnoremap <silent><buffer><nowait> h       :call <SID>key_events('h')<CR>
-  nnoremap <silent><buffer><nowait> j       <NOP>
-  nnoremap <silent><buffer><nowait> k       <NOP>
+  nnoremap <silent><buffer><nowait> j       :call <SID>key_events('j')<CR>
+  nnoremap <silent><buffer><nowait> k       :call <SID>key_events('k')<CR>
   nnoremap <silent><buffer><nowait> l       :call <SID>key_events('l')<CR>
   nnoremap <silent><buffer><nowait> <space> :call <SID>key_events(' ')<CR>
+  nnoremap <silent><buffer><nowait> t       :call <SID>toggle_mode()<CR>
 
   augroup BoxBoy
     autocmd!
