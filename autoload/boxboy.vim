@@ -12,6 +12,10 @@ set cpo&vim
 "   1: block  move mode
 let s:mode = 0
 
+function! s:init_mode() abort
+  let s:mode = 0
+endfunction
+
 function! s:toggle_mode() abort
   if s:mode
     echo 'PLAYER MOVE MODE'
@@ -201,6 +205,7 @@ function! s:restart() abort
   endfor
   call s:move_cursor_to_start()
   call s:set_player_to_cursor()
+  call s:init_mode()
 endfunction
 
 function! s:main() abort
@@ -211,6 +216,7 @@ function! s:main() abort
   endfor
   call s:move_cursor_to_start()
   call s:set_player_to_cursor()
+  call s:init_mode()
 
   nnoremap <silent><buffer><nowait> h       :call <SID>key_events('h')<CR>
   nnoremap <silent><buffer><nowait> j       :call <SID>key_events('j')<CR>
