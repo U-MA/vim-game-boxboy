@@ -12,6 +12,8 @@ set cpo&vim
 "   1: block  move mode
 let s:mode = 0
 
+let s:current_cursor_position = []
+
 function! s:init_mode() abort
   let s:mode = 0
 endfunction
@@ -20,9 +22,12 @@ function! s:toggle_mode() abort
   if s:mode
     echo 'PLAYER MOVE MODE'
     let s:mode = 0
+    call setpos('.', s:current_cursor_position)
   else
     echo 'BLOCK GENERATE MODE'
     let s:mode = 1
+    let s:gen_length = 0
+    let s:current_cursor_position = getpos('.')
   endif
   endfunction
 " }}}
@@ -41,7 +46,7 @@ endfunction
 
 " blocks {{{
   let s:block_ch = '#'
-  let s:blocks = [ '=', '#' ]
+  let s:blocks = [ '=', '#', 'O' ]
 " }}}
 
 "}}}
@@ -55,7 +60,7 @@ endfunction
 
 function! s:search_goal() abort
   execute 'normal gg0'
-  return search('G', 'W')
+  return search('G', 'W', line('$')-2)
 endfunction
 
 function! s:is_clear() abort
@@ -66,6 +71,21 @@ function! s:is_clear() abort
   else
     call setpos('.', p)
     echo 'Clear'
+
+    let s:current_stage_no += 1
+
+    if s:current_stage_no > s:max_stage-1
+      echo 'Finish'
+      return 1
+    endif
+
+    let s:stage = s:stage_set[s:current_stage_no]
+    %delete " buffer clear
+    call s:setup_stage()
+    call s:move_cursor_to_start()
+    call s:set_player_to_cursor()
+    call s:init_mode()
+
     return 1
   endif
 endfunction
@@ -113,24 +133,27 @@ endfunction
 
 " Block generater{{{
 
+let s:gen_length = 0
+
 function! s:generate_block(dir) abort
   if a:dir ==# 'h'
-    if s:is_movable(a:dir)
+    if s:is_movable(a:dir) && s:gen_length < s:gen_length_max
       execute 'normal! hr' . s:block_ch
-      execute 'normal! l'
+      let s:gen_length += 1
     endif
   elseif a:dir ==# 'j'
   elseif a:dir ==# 'k'
-    if s:is_movable(a:dir)
+    if s:is_movable(a:dir) && s:gen_length < s:gen_length_max
       execute 'normal! kr' . s:block_ch
-      execute 'normal! j'
+      let s:gen_length += 1
     endif
   elseif a:dir ==# 'l'
-    if s:is_movable(a:dir)
+    if s:is_movable(a:dir) && s:gen_length < s:gen_length_max
       execute 'normal! lr' . s:block_ch
-      execute 'normal! h'
+      let s:gen_length += 1
     endif
   endif
+  echo s:gen_length . ' ' . s:gen_length_max
 endfunction
 
 " }}}
@@ -170,6 +193,15 @@ function! s:jump() abort
   call s:right()
 endfunction
 
+function! s:hook_shot() abort
+  let check_str = 'A\s*O'
+  let line = getline('.')
+  if match(line[col('.')-1:], 'A\s*O') != -1
+    execute 'normal! r '
+    execute 'normal! tOr' . s:player_ch
+  endif
+endfunction
+
 function! s:key_events(key) abort
   if s:mode " block generate
     if a:key ==# 'h'
@@ -190,6 +222,9 @@ function! s:key_events(key) abort
       call s:down()
     elseif a:key ==# ' '
       call s:jump()
+      call s:down()
+    elseif a:key ==# 'f'
+      call s:hook_shot()
       call s:down()
     endif
   endif
@@ -223,17 +258,22 @@ let s:current_stage_no       = 0
 let s:stage_set = s:stages[s:default_stage_set_name]
 let s:stage     = s:stage_set[s:current_stage_no]
 
-let s:gen_max    = 0 " the max of generatable blocks
-let s:gen_length = 0 " the max length of generating blocks once
+let s:gen_max        = 0 " the max of generatable blocks
+let s:gen_length_max = 0 " the max length of generating blocks once
+
+let s:max_stage = len(s:stage_set)
 
 function! s:draw_stage() abort
   call setline(1, s:stage['stage'])
+  call setline(line('$')+1, '')
+  call setline(line('$')+1, 'MAX GENERATE: ' . s:stage['gen_max'])
+  call setline(line('$')+1, 'MAX GENERATE LENGTH: ' . s:stage['gen_length'])
 endfunction
 
 function! s:setup_stage() abort
   call s:draw_stage()
-  let s:gen_max = s:stage['gen_max']
-  let s:gen_length = s:stage['gen_length']
+  let s:gen_max        = s:stage['gen_max']
+  let s:gen_length_max = s:stage['gen_length']
 endfunction
 
 function! s:restart() abort
@@ -257,6 +297,7 @@ function! boxboy#main() abort
   nnoremap <silent><buffer><nowait> k       :call <SID>key_events('k')<CR>
   nnoremap <silent><buffer><nowait> l       :call <SID>key_events('l')<CR>
   nnoremap <silent><buffer><nowait> <space> :call <SID>key_events(' ')<CR>
+  nnoremap <silent><buffer><nowait> f       :call <SID>key_events('f')<CR>
   nnoremap <silent><buffer><nowait> t       :call <SID>toggle_mode()<CR>
   nnoremap <silent><buffer><nowait> r       :call <SID>restart()<CR>
 
