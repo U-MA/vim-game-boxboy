@@ -227,7 +227,7 @@ function! s:restart() abort
   call s:init_mode()
 endfunction
 
-function! s:main() abort
+function! boxboy#main() abort
   tabnew boxboy
   %delete " buffer clear
   for l:i in readfile('./autoload/stages/stage0.txt')
@@ -257,7 +257,5 @@ endfunction
 
 let &cpo = s:save_cpo
 unlet s:save_cpo
-
-command! BoxBoy call s:main()
 
 " vim: foldmethod=marker
