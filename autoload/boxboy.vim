@@ -217,11 +217,28 @@ endfor
 
 " main {{{
 
+let s:default_stage_set_name = '0'
+let s:current_stage_no       = 0
+
+let s:stage_set = s:stages[s:default_stage_set_name]
+let s:stage     = s:stage_set[s:current_stage_no]
+
+let s:gen_max    = 0 " the max of generatable blocks
+let s:gen_length = 0 " the max length of generating blocks once
+
+function! s:draw_stage() abort
+  call setline(1, s:stage['stage'])
+endfunction
+
+function! s:setup_stage() abort
+  call s:draw_stage()
+  let s:gen_max = s:stage['gen_max']
+  let s:gen_length = s:stage['gen_length']
+endfunction
+
 function! s:restart() abort
   %delete " buffer clear
-  for l:i in readfile('./autoload/stages/stage0.txt')
-    call setline(line('$')+1, l:i)
-  endfor
+  call s:setup_stage()
   call s:move_cursor_to_start()
   call s:set_player_to_cursor()
   call s:init_mode()
@@ -230,9 +247,7 @@ endfunction
 function! boxboy#main() abort
   tabnew boxboy
   %delete " buffer clear
-  for l:i in readfile('./autoload/stages/stage0.txt')
-    call setline(line('$')+1, l:i)
-  endfor
+  call s:setup_stage()
   call s:move_cursor_to_start()
   call s:set_player_to_cursor()
   call s:init_mode()
