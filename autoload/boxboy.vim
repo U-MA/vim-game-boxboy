@@ -196,6 +196,25 @@ function! s:key_events(key) abort
 endfunction
 "}}}
 
+" Stages {{{
+
+function! boxboy#add_stage(stage_set_name, stage) abort
+  if !has_key(s:stages, a:stage_set_name)
+    let s:stages[a:stage_set_name] = []
+  endif
+  call add(s:stages[a:stage_set_name], a:stage)
+endfunction
+
+let s:stages = {}
+
+let s:boxboy_dir = split(globpath(&runtimepath, 'autoload/boxboy'), '\n')
+let s:stage_set_files = split(s:boxboy_dir[0] . '/*.vim', '\n')
+for s:stage_set_file in s:stage_set_files
+  execute 'source ' . s:stage_set_file
+endfor
+
+" }}}
+
 " main {{{
 
 function! s:restart() abort
