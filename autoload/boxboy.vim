@@ -161,12 +161,14 @@ endfunction
 " key event {{{
 
 function! s:right() abort
+  let s:previous_dir = 'l'
   if s:is_movable('l')
     execute 'normal! r lr' . s:player_ch
   endif
 endfunction
 
 function! s:left() abort
+  let s:previous_dir = 'h'
   if s:is_movable('h')
     execute 'normal! r hr' . s:player_ch
   endif
@@ -180,6 +182,8 @@ function! s:down() abort
   endwhile
 endfunction
 
+let s:previous_dir = 'l'
+
 function! s:jump() abort
   let jmp_count = 2
   while jmp_count > 0
@@ -190,7 +194,11 @@ function! s:jump() abort
       break
     endif
   endwhile
-  call s:right()
+  if s:previous_dir == 'l'
+    call s:right()
+  else
+    call s:left()
+  endif
 endfunction
 
 function! s:hook_shot() abort
