@@ -194,7 +194,7 @@ function! s:jump() abort
       break
     endif
   endwhile
-  if s:previous_dir == 'l'
+  if s:previous_dir ==# 'l'
     call s:right()
   else
     call s:left()
