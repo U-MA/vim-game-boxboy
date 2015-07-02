@@ -213,7 +213,9 @@ endfunction
 function! s:erase_blocks() abort
   let tmp_pos = getpos('.')
   execute 'normal! gg0'
-  silent %substitute/#/ /g
+  if search('#', 'W')
+    silent %substitute/#/ /g
+  endif
   call setpos('.', tmp_pos)
 endfunction
 
@@ -240,6 +242,9 @@ function! s:key_events(key) abort
       call s:down()
     elseif a:key ==# 'f'
       call s:hook_shot()
+      call s:down()
+    elseif a:key ==# 'x'
+      call s:erase_blocks()
       call s:down()
     endif
   endif
@@ -313,6 +318,7 @@ function! boxboy#main() abort
   nnoremap <silent><buffer><nowait> l       :call <SID>key_events('l')<CR>
   nnoremap <silent><buffer><nowait> <space> :call <SID>key_events(' ')<CR>
   nnoremap <silent><buffer><nowait> f       :call <SID>key_events('f')<CR>
+  nnoremap <silent><buffer><nowait> x       :call <SID>key_events('x')<CR>
   nnoremap <silent><buffer><nowait> t       :call <SID>toggle_mode()<CR>
   nnoremap <silent><buffer><nowait> r       :call <SID>restart()<CR>
 
