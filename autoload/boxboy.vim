@@ -210,6 +210,13 @@ function! s:hook_shot() abort
   endif
 endfunction
 
+function! s:erase_blocks() abort
+  let tmp_pos = getpos('.')
+  execute 'normal! gg0'
+  silent %substitute/#/ /g
+  call setpos('.', tmp_pos)
+endfunction
+
 function! s:key_events(key) abort
   if s:mode " block generate
     if a:key ==# 'h'

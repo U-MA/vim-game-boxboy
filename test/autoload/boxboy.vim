@@ -2,7 +2,7 @@ let owl_SID = owl#filename_to_SID('boxboy/autoload/boxboy.vim')
 
 " Util functions
 function! s:add_lines(str) abort
-  put! =a:str
+  silent put! =a:str
 endfunction
 
 function! s:create_tab() abort
@@ -25,6 +25,16 @@ let s:valid_stage = [
 let s:invalid_stage = [
   \ '=====', 
   \ '=   =',
+  \ '=====',
+  \ '',
+  \ 'discription1',
+  \ 'discription2',
+  \ ]
+
+let s:stage_existing_block = [
+  \ '=====', 
+  \ '= # =',
+  \ '= ##=',
   \ '=====',
   \ '',
   \ 'discription1',
@@ -71,4 +81,12 @@ function! s:test_search_goal_func_returns_1_when_find_G()
 endfunction
 " }}}
 
+function! s:test_erase_blocks_erase_generated_blocks()
+  call s:create_tab()
+  call s:add_lines(s:stage_existing_block)
+  OwlCheck !s:erase_blocks()
+  execute 'normal! gg0'
+  OwlCheck !search('#', 'W')
+  call s:close_tab()
+endfunction
 " vim: foldmethod=marker
