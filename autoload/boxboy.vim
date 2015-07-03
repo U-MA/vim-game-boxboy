@@ -28,6 +28,7 @@ function! s:toggle_mode() abort
     let s:mode = 1
     let s:gen_length = 0
     let s:current_cursor_position = getpos('.')
+    call s:erase_blocks()
   endif
   endfunction
 " }}}
