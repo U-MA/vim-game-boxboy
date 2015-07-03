@@ -27,9 +27,9 @@ function! s:toggle_mode() abort
     echo 'BLOCK GENERATE MODE'
     let s:mode = 1
     let s:gen_length = 0
-    let s:current_cursor_position = getpos('.')
     call s:erase_blocks()
     call s:down()
+    let s:current_cursor_position = getpos('.')
   endif
   endfunction
 " }}}
@@ -322,6 +322,7 @@ function! boxboy#main() abort
   nnoremap <silent><buffer><nowait> f       :call <SID>key_events('f')<CR>
   nnoremap <silent><buffer><nowait> x       :call <SID>key_events('x')<CR>
   nnoremap <silent><buffer><nowait> t       :call <SID>toggle_mode()<CR>
+  nnoremap <silent><buffer><nowait> <esc>   :call <SID>toggle_mode()<CR>
   nnoremap <silent><buffer><nowait> r       :call <SID>restart()<CR>
 
   augroup BoxBoy
