@@ -149,6 +149,10 @@ function! s:generate_block(dir) abort
       let s:gen_length += 1
     endif
   elseif a:dir ==# 'j'
+    if s:getchar_on_cursor() != s:player_ch && s:is_movable(a:dir) && s:gen_length < s:gen_length_max
+      execute 'normal! jr' . s:block_ch
+      let s:gen_length += 1
+    endif
   elseif a:dir ==# 'k'
     if s:is_movable(a:dir) && s:gen_length < s:gen_length_max
       execute 'normal! kr' . s:block_ch
