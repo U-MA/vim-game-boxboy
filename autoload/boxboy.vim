@@ -15,6 +15,9 @@ let s:mode = 0
 let s:current_cursor_position = []
 
 function! s:init_mode() abort
+  if s:current_cursor_position != []
+    call setpos('.', s:current_cursor_position)
+  endif
   let s:mode = 0
 endfunction
 
@@ -86,6 +89,7 @@ function! s:is_clear() abort
     call s:setup_stage()
     call s:move_cursor_to_start()
     call s:set_player_to_cursor()
+    let s:current_cursor_position = []
     call s:init_mode()
 
     return 1
@@ -312,6 +316,7 @@ function! boxboy#main() abort
   call s:setup_stage()
   call s:move_cursor_to_start()
   call s:set_player_to_cursor()
+  let s:current_cursor_position = []
   call s:init_mode()
 
   nnoremap <silent><buffer><nowait> h       :call <SID>key_events('h')<CR>
@@ -322,7 +327,7 @@ function! boxboy#main() abort
   nnoremap <silent><buffer><nowait> f       :call <SID>key_events('f')<CR>
   nnoremap <silent><buffer><nowait> x       :call <SID>key_events('x')<CR>
   nnoremap <silent><buffer><nowait> t       :call <SID>toggle_mode()<CR>
-  nnoremap <silent><buffer><nowait> <esc>   :call <SID>toggle_mode()<CR>
+  nnoremap <silent><buffer><nowait> <esc>   :call <SID>init_mode()()<CR>
   nnoremap <silent><buffer><nowait> r       :call <SID>restart()<CR>
 
   augroup BoxBoy
