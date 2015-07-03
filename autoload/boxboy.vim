@@ -26,6 +26,7 @@ function! s:toggle_mode() abort
     echo 'PLAYER MOVE MODE'
     let s:mode = 0
     call setpos('.', s:current_cursor_position)
+    let s:current_cursor_position = []
   else
     echo 'BLOCK GENERATE MODE'
     let s:mode = 1
@@ -327,7 +328,7 @@ function! boxboy#main() abort
   nnoremap <silent><buffer><nowait> f       :call <SID>key_events('f')<CR>
   nnoremap <silent><buffer><nowait> x       :call <SID>key_events('x')<CR>
   nnoremap <silent><buffer><nowait> t       :call <SID>toggle_mode()<CR>
-  nnoremap <silent><buffer><nowait> <esc>   :call <SID>init_mode()()<CR>
+  nnoremap <silent><buffer><nowait> <esc>   :call <SID>init_mode()<CR>
   nnoremap <silent><buffer><nowait> r       :call <SID>restart()<CR>
 
   augroup BoxBoy
