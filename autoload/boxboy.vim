@@ -6,17 +6,28 @@
 let s:save_cpo = &cpo
 set cpo&vim
 
-" Player mode {{{
+"Player information {{{
+let s:player_ch = 'A'
+
 " mode
 "   0: player move mode
-"   1: block  move mode
+"   1: block generate mode
 let s:mode = 0
+let s:previous_dir = 'l'
+let s:player_pos = []
 
-let s:current_cursor_position = []
+function! s:init_player_information() abort
+  let s:mode         = 0
+  let s:previous_dir = 'l'
+  let s:player_pos   = []
+endfunction
+" }}}
 
+" Mode {{{
 function! s:init_mode() abort
-  if s:current_cursor_position != []
-    call setpos('.', s:current_cursor_position)
+  if s:player_pos != []
+    call setpos('.', s:player_pos)
+    let s:player_pos = []
   endif
   let s:mode = 0
 endfunction
@@ -25,39 +36,41 @@ function! s:toggle_mode() abort
   if s:mode
     echo 'PLAYER MOVE MODE'
     let s:mode = 0
-    call setpos('.', s:current_cursor_position)
-    let s:current_cursor_position = []
+    call setpos('.', s:player_pos)
+    let s:player_pos = []
   else
     echo 'BLOCK GENERATE MODE'
     let s:mode = 1
     let s:gen_length = 0
     call s:erase_blocks()
     call s:down()
-    let s:current_cursor_position = getpos('.')
+    let s:player_pos = getpos('.')
   endif
   endfunction
 " }}}
 
-" Objects {{{
-
-" player variable {{{
-let s:player_ch = 'A'
-let s:player = { 'x': 0, 'y': 0 }
-
-" dir == [hjkl]
-function! s:player.move(dir) abort
-endfunction
-
-"}}}
-
-" blocks {{{
-  let s:block_ch = '#'
+" Blocks {{{
+  let s:gen_block_ch = '#'
   let s:blocks = [ '=', '#', 'O' ]
 " }}}
 
-"}}}
+" Utility {{{
 
-" util functions {{{
+function! s:move_up_player_and_gen_blocks() abort
+  let l:pos = getpos('.')
+  execute 'normal! gg0'
+  while search('[A#]', 'W', line('$')-2)
+    call s:move_ch_on_cursor_to('k')
+  endwhile
+  call setpos('.', l:pos)
+endfunction
+
+function! s:move_ch_on_cursor_to(dir) abort
+  let l:ch  = s:getchar_on_cursor()
+  let l:pos = getpos('.')
+  execute 'normal! r ' . a:dir . 'r' . l:ch
+  call setpos('.', l:pos)
+endfunction
 
 function! s:move_cursor_to_start() abort
   execute 'normal gg0'
@@ -66,7 +79,7 @@ endfunction
 
 function! s:search_goal() abort
   execute 'normal gg0'
-  return search('G', 'W', line('$')-2)
+  return search('G', 'W', line('$')-2) "TODO: erase magic number
 endfunction
 
 function! s:is_clear() abort
@@ -80,18 +93,13 @@ function! s:is_clear() abort
 
     let s:current_stage_no += 1
 
-    if s:current_stage_no > s:max_stage-1
+    if s:current_stage_no > s:nstages-1
       echo 'Finish'
       return 1
     endif
 
     let s:stage = s:stage_set[s:current_stage_no]
-    %delete " buffer clear
-    call s:setup_stage()
-    call s:move_cursor_to_start()
-    call s:set_player_to_cursor()
-    let s:current_cursor_position = []
-    call s:init_mode()
+    call s:setup_all()
 
     return 1
   endif
@@ -103,10 +111,6 @@ endfunction
 
 function! s:set_player_to_cursor() abort
   execute 'normal! r' . s:player_ch
-endfunction
-
-function! s:getchar_under_player() abort
-  return getline(line('.')+1)[col('.')-1]
 endfunction
 
 function! s:getchar_on(dir) abort
@@ -144,32 +148,40 @@ let s:gen_length = 0
 
 function! s:generate_block(dir) abort
   if a:dir ==# 'h'
-    if s:is_movable(a:dir) && s:gen_length < s:gen_length_max
-      execute 'normal! hr' . s:block_ch
+    if s:is_movable(a:dir)
+      execute 'normal! hr' . s:gen_block_ch
       let s:gen_length += 1
     endif
   elseif a:dir ==# 'j'
-    if s:getchar_on_cursor() != s:player_ch && s:is_movable(a:dir) && s:gen_length < s:gen_length_max
-      execute 'normal! jr' . s:block_ch
-      let s:gen_length += 1
+    if s:getchar_on_cursor() != s:player_ch
+      if s:is_movable(a:dir)
+        execute 'normal! jr' . s:gen_block_ch
+        let s:gen_length += 1
+      else
+        let l:pos = getpos('.')
+        call s:move_up_player_and_gen_blocks()
+        execute 'normal! r' . s:gen_block_ch
+        call setpos('.', l:pos)
+        let s:player_pos[1] -= 1
+        let s:gen_length += 1
+      endif
     endif
   elseif a:dir ==# 'k'
-    if s:is_movable(a:dir) && s:gen_length < s:gen_length_max
-      execute 'normal! kr' . s:block_ch
+    if s:is_movable(a:dir)
+      execute 'normal! kr' . s:gen_block_ch
       let s:gen_length += 1
     endif
   elseif a:dir ==# 'l'
-    if s:is_movable(a:dir) && s:gen_length < s:gen_length_max
-      execute 'normal! lr' . s:block_ch
+    if s:is_movable(a:dir)
+      execute 'normal! lr' . s:gen_block_ch
       let s:gen_length += 1
     endif
   endif
-  echo s:gen_length . ' ' . s:gen_length_max
 endfunction
 
 " }}}
 
-" key event {{{
+" Key event {{{
 
 function! s:right() abort
   let s:previous_dir = 'l'
@@ -186,14 +198,12 @@ function! s:left() abort
 endfunction
 
 function! s:down() abort
-  while s:getchar_under_player() ==# ' '
+  while s:getchar_on('j') ==# ' '
     sleep 300m
     execute 'normal! r jr' . s:player_ch
     redraw
   endwhile
 endfunction
-
-let s:previous_dir = 'l'
 
 function! s:jump() abort
   let jmp_count = 2
@@ -232,6 +242,10 @@ endfunction
 
 function! s:key_events(key) abort
   if s:mode " block generate
+    if s:gen_length >= s:gen_length_max
+      return
+    endif
+
     if a:key ==# 'h'
       call s:generate_block('h')
     elseif a:key ==# 'j'
@@ -281,7 +295,7 @@ endfor
 
 " }}}
 
-" main {{{
+" Main {{{
 
 let s:default_stage_set_name = '0'
 let s:current_stage_no       = 0
@@ -292,7 +306,7 @@ let s:stage     = s:stage_set[s:current_stage_no]
 let s:gen_max        = 0 " the max of generatable blocks
 let s:gen_length_max = 0 " the max length of generating blocks once
 
-let s:max_stage = len(s:stage_set)
+let s:nstages = len(s:stage_set)
 
 function! s:draw_stage() abort
   call setline(1, s:stage['stage'])
@@ -307,22 +321,17 @@ function! s:setup_stage() abort
   let s:gen_length_max = s:stage['gen_length']
 endfunction
 
-function! s:restart() abort
-  %delete " buffer clear
+function! s:setup_all() abort
+  %delete
+  call s:init_player_information()
   call s:setup_stage()
   call s:move_cursor_to_start()
   call s:set_player_to_cursor()
-  call s:init_mode()
 endfunction
 
 function! boxboy#main() abort
   tabnew boxboy
-  %delete " buffer clear
-  call s:setup_stage()
-  call s:move_cursor_to_start()
-  call s:set_player_to_cursor()
-  let s:current_cursor_position = []
-  call s:init_mode()
+  call s:setup_all()
 
   nnoremap <silent><buffer><nowait> h       :call <SID>key_events('h')<CR>
   nnoremap <silent><buffer><nowait> j       :call <SID>key_events('j')<CR>
@@ -333,7 +342,7 @@ function! boxboy#main() abort
   nnoremap <silent><buffer><nowait> x       :call <SID>key_events('x')<CR>
   nnoremap <silent><buffer><nowait> t       :call <SID>toggle_mode()<CR>
   nnoremap <silent><buffer><nowait> <esc>   :call <SID>init_mode()<CR>
-  nnoremap <silent><buffer><nowait> r       :call <SID>restart()<CR>
+  nnoremap <silent><buffer><nowait> r       :call <SID>setup_all()<CR>
 
   augroup BoxBoy
     autocmd!
