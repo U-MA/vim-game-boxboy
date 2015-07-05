@@ -56,6 +56,21 @@ function! s:toggle_mode() abort
 
 " Utility {{{
 
+function! s:is_lift() abort
+  let l:pos = getpos('.')
+  execute 'normal! gg0'
+  let l:l = search('[A#]', 'W')
+  execute 'normal! gg0'
+  while search('[A#]', 'W') == l:l
+    if !s:is_movable('k')
+      call setpos('.', l:pos)
+      return 0
+    endif
+  endwhile
+  call setpos('.', l:pos)
+  return 1
+endfunction
+
 function! s:move_up_player_and_gen_blocks() abort
   let l:pos = getpos('.')
   execute 'normal! gg0'
@@ -159,6 +174,10 @@ function! s:generate_block(dir) abort
         let s:gen_length += 1
       else
         let l:pos = getpos('.')
+        if !s:is_lift()
+          call setpos('.', l:pos)
+          return
+        endif
         call s:move_up_player_and_gen_blocks()
         execute 'normal! r' . s:gen_block_ch
         call setpos('.', l:pos)
