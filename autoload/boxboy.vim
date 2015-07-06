@@ -152,7 +152,7 @@ endfunction
 " dir == [hjkl]
 function! s:is_movable(dir) abort
   let c = s:getchar_on(a:dir)
-  return !s:is_block(c)
+  return !s:is_block(c) && c !=# s:player_ch
 endfunction
 
 " }}}
