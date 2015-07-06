@@ -30,11 +30,19 @@ function! s:init_mode() abort
     let s:player_pos = []
   endif
   let s:mode = 0
+  while s:is_fall()
+    call s:move_down_gen_blocks()
+  endwhile
 endfunction
 
 function! s:toggle_mode() abort
   if s:mode
     echo 'PLAYER MOVE MODE'
+
+    while s:is_fall()
+      call s:move_down_gen_blocks()
+    endwhile
+
     let s:mode = 0
     call setpos('.', s:player_pos)
     let s:player_pos = []
@@ -56,6 +64,21 @@ function! s:toggle_mode() abort
 
 " Utility {{{
 
+function! s:is_fall() abort
+  let l:pos = getpos('.')
+  execute 'normal! ' . (line('$')-2) . 'G'
+  let l:l = search('#', 'bW')
+  execute 'normal! ' . (line('$')-2) . 'G'
+  while search('#', 'bW') == l:l
+    if !s:is_movable('j')
+      call setpos('.', l:pos)
+      return 0
+    endif
+  endwhile
+  call setpos('.', l:pos)
+  return 1
+endfunction
+
 function! s:is_lift() abort
   let l:pos = getpos('.')
   execute 'normal! gg0'
@@ -76,6 +99,15 @@ function! s:move_up_player_and_gen_blocks() abort
   execute 'normal! gg0'
   while search('[A#]', 'W', line('$')-2)
     call s:move_ch_on_cursor_to('k')
+  endwhile
+  call setpos('.', l:pos)
+endfunction
+
+function! s:move_down_gen_blocks() abort
+  let l:pos = getpos('.')
+  execute 'normal! ' . (line('$')-2) . 'G'
+  while search('#', 'bW')
+    call s:move_ch_on_cursor_to('j')
   endwhile
   call setpos('.', l:pos)
 endfunction
