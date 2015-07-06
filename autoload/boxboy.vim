@@ -68,6 +68,10 @@ function! s:is_fall() abort
   let l:pos = getpos('.')
   execute 'normal! ' . (line('$')-2) . 'G'
   let l:l = search('#', 'bW')
+  if !l:l
+    call setpos('.', l:pos)
+    return 0
+  endif
   execute 'normal! ' . (line('$')-2) . 'G'
   while search('#', 'bW') == l:l
     if !s:is_movable('j')
@@ -184,7 +188,7 @@ endfunction
 " dir == [hjkl]
 function! s:is_movable(dir) abort
   let c = s:getchar_on(a:dir)
-  return !s:is_block(c) && c !=# s:player_ch
+  return !s:is_block(c) && (c !=# s:player_ch)
 endfunction
 
 " }}}
@@ -206,7 +210,7 @@ function! s:generate_block(dir) abort
         let s:gen_length += 1
       else
         let l:pos = getpos('.')
-        if !s:is_lift()
+        if !s:is_lift() || s:getchar_on('j') ==# s:player_ch
           call setpos('.', l:pos)
           return
         endif
@@ -323,6 +327,11 @@ function! s:key_events(key) abort
       call s:erase_blocks()
       call s:down()
     endif
+
+  while s:is_fall()
+    call s:move_down_gen_blocks()
+  endwhile
+
   endif
 endfunction
 "}}}
