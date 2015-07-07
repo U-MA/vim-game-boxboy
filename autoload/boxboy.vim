@@ -12,9 +12,9 @@ let s:player_ch = 'A'
 " mode
 "   0: player move mode
 "   1: block generate mode
-let s:mode = 0
+let s:mode         = 0
 let s:previous_dir = 'l'
-let s:player_pos = []
+let s:player_pos   = []
 
 function! s:init_player_information() abort
   let s:mode         = 0
@@ -33,6 +33,10 @@ function! s:init_mode() abort
   while s:is_fall()
     call s:move_down_gen_blocks()
   endwhile
+endfunction
+
+function! s:get_mode() abort
+  return s:mode
 endfunction
 
 function! s:toggle_mode() abort
@@ -261,7 +265,7 @@ function! s:down() abort
 endfunction
 
 function! s:jump() abort
-  let jmp_count = 2
+  let jmp_count = 1
   while jmp_count > 0
     if s:is_movable('k')
       execute 'normal! r kr' . s:player_ch
@@ -278,11 +282,17 @@ function! s:jump() abort
 endfunction
 
 function! s:hook_shot() abort
-  let check_str = 'A\s*O'
   let line = getline('.')
-  if match(line[col('.')-1:], 'A\s*O') != -1
-    execute 'normal! r '
-    execute 'normal! tOr' . s:player_ch
+  if s:previous_dir == 'l'
+    if match(line[col('.')-1:], 'A\s*O') != -1
+      execute 'normal! r '
+      execute 'normal! tOr' . s:player_ch
+    endif
+  else
+    if match(line[:col('.')-1], 'O\s*A') != -1
+      execute 'normal! r '
+      execute 'normal! TOr' . s:player_ch
+    endif
   endif
 endfunction
 
