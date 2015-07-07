@@ -265,6 +265,10 @@ function! s:down() abort
 endfunction
 
 function! s:jump() abort
+  if !s:is_block(s:getchar_on('j'))
+    return
+  endif
+
   let jmp_count = 1
   while jmp_count > 0
     if s:is_movable('k')
