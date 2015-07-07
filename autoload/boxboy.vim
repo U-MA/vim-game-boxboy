@@ -258,7 +258,7 @@ endfunction
 
 function! s:down() abort
   while !s:is_block(s:getchar_on('j'))
-    sleep 300m
+    sleep 250m
     execute 'normal! r jr' . s:player_ch
     redraw
   endwhile
@@ -283,6 +283,8 @@ function! s:jump() abort
   else
     call s:left()
   endif
+  redraw
+  sleep 50m
 endfunction
 
 function! s:hook_shot() abort
