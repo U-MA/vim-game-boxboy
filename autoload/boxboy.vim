@@ -23,6 +23,22 @@ function! s:init_player_information() abort
 endfunction
 " }}}
 
+" Script {{{
+
+let s:users_guide = [
+  \ '[ 操作説明 ]',
+  \ 'h: 左に動く / ブロックを左に生成',
+  \ 'j:  / ブロックを下に生成',
+  \ 'k:  / ブロックを上に生成',
+  \ 'l: 右に動く / ブロックを右に生成',
+  \ 'f: 進行方向のOの直前まで動く /',
+  \ 't: モード切り替え',
+  \ 'x: ブロックを消去 /',
+  \ '<space>: 進行方向のブロックを１段登る /',
+  \ ]
+
+" }}}}
+
 " Mode {{{
 function! s:init_mode() abort
   if s:player_pos != []
@@ -70,13 +86,13 @@ function! s:toggle_mode() abort
 
 function! s:is_fall() abort
   let l:pos = getpos('.')
-  execute 'normal! ' . (line('$')-2) . 'G'
+  execute 'normal! ' . (line('$')-3-len(s:users_guide)) . 'G'
   let l:l = search('#', 'bW')
   if !l:l
     call setpos('.', l:pos)
     return 0
   endif
-  execute 'normal! ' . (line('$')-2) . 'G'
+  execute 'normal! ' . (line('$')-3-len(s:users_guide)) . 'G'
   while search('#', 'bW') == l:l
     if !s:is_movable('j')
       call setpos('.', l:pos)
@@ -105,7 +121,7 @@ endfunction
 function! s:move_up_player_and_gen_blocks() abort
   let l:pos = getpos('.')
   execute 'normal! gg0'
-  while search('[A#]', 'W', line('$')-2)
+  while search('[A#]', 'W', line('$')-3-len(s:users_guide))
     call s:move_ch_on_cursor_to('k')
   endwhile
   call setpos('.', l:pos)
@@ -113,7 +129,7 @@ endfunction
 
 function! s:move_down_gen_blocks() abort
   let l:pos = getpos('.')
-  execute 'normal! ' . (line('$')-2) . 'G'
+  execute 'normal! ' . (line('$')-3-len(s:users_guide)) . 'G'
   while search('#', 'bW')
     call s:move_ch_on_cursor_to('j')
   endwhile
@@ -134,7 +150,7 @@ endfunction
 
 function! s:search_goal() abort
   execute 'normal gg0'
-  return search('G', 'W', line('$')-2) "TODO: erase magic number
+  return search('G', 'W', line('$')-3-len(s:users_guide)) "TODO: erase magic number
 endfunction
 
 function! s:is_clear() abort
@@ -391,8 +407,16 @@ function! s:draw_stage() abort
   call setline(line('$')+1, 'MAX GENERATE LENGTH: ' . s:stage['gen_length'])
 endfunction
 
+function! s:draw_users_guide() abort
+  call setline(line('$')+1, '')
+  for l:line in s:users_guide
+    call setline(line('$')+1, l:line)
+  endfor
+endfunction
+
 function! s:setup_stage() abort
   call s:draw_stage()
+  call s:draw_users_guide()
   let s:gen_max        = s:stage['gen_max']
   let s:gen_length_max = s:stage['gen_length']
 endfunction
