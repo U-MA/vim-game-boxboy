@@ -35,6 +35,7 @@ let s:users_guide = [
   \ 't: モード切り替え',
   \ 'x: ブロックを消去 /',
   \ '<space>: 進行方向のブロックを１段登る /',
+  \ 'Q: ゲームをやめる',
   \ ]
 
 " }}}}
@@ -144,12 +145,12 @@ function! s:move_ch_on_cursor_to(dir) abort
 endfunction
 
 function! s:move_cursor_to_start() abort
-  execute 'normal gg0'
+  execute 'normal! gg0'
   call search('S', 'W')
 endfunction
 
 function! s:search_goal() abort
-  execute 'normal gg0'
+  execute 'normal! gg0'
   return search('G', 'W', line('$')-3-len(s:users_guide)) "TODO: erase magic number
 endfunction
 
@@ -387,6 +388,29 @@ endfor
 
 " }}}
 
+" Disable keys {{{
+
+function! s:disable_all_keys() abort
+  let keys = []
+  call extend(keys, range(33, 48))
+  call extend(keys, range(58, 126))
+  for key in keys
+    if nr2char(key) == '|'
+      continue
+    endif
+
+    execute 'nnoremap <silent><buffer><nowait> ' . nr2char(key) . ' <Nop>'
+    execute 'vnoremap <silent><buffer><nowait> ' . nr2char(key) . ' <Nop>'
+    execute 'onoremap <silent><buffer><nowait> ' . nr2char(key) . ' <Nop>'
+
+    execute 'nnoremap <silent><buffer><nowait> g' . nr2char(key) . ' <Nop>'
+    execute 'vnoremap <silent><buffer><nowait> g' . nr2char(key) . ' <Nop>'
+    execute 'onoremap <silent><buffer><nowait> g' . nr2char(key) . ' <Nop>'
+  endfor
+endfunction
+
+" }}}
+
 " Main {{{
 
 let s:default_stage_set_name = '0'
@@ -433,6 +457,7 @@ function! boxboy#main() abort
   tabnew boxboy
   call s:setup_all()
 
+  call s:disable_all_keys()
   nnoremap <silent><buffer><nowait> h       :call <SID>key_events('h')<CR>
   nnoremap <silent><buffer><nowait> j       :call <SID>key_events('j')<CR>
   nnoremap <silent><buffer><nowait> k       :call <SID>key_events('k')<CR>
@@ -443,6 +468,7 @@ function! boxboy#main() abort
   nnoremap <silent><buffer><nowait> t       :call <SID>toggle_mode()<CR>
   nnoremap <silent><buffer><nowait> <esc>   :call <SID>init_mode()<CR>
   nnoremap <silent><buffer><nowait> r       :call <SID>setup_all()<CR>
+  nnoremap <silent><buffer><nowait> Q       :<C-u>bd!<CR>
 
   augroup BoxBoy
     autocmd!
