@@ -381,7 +381,7 @@ endfunction
 let s:stages = {}
 
 let s:boxboy_dir = split(globpath(&runtimepath, 'autoload/boxboy'), '\n')
-let s:stage_set_files = split(s:boxboy_dir[0] . '/*.vim', '\n')
+let s:stage_set_files = split(glob(s:boxboy_dir[0] . '/*.vim'), '\n')
 for s:stage_set_file in s:stage_set_files
   execute 'source ' . s:stage_set_file
 endfor
