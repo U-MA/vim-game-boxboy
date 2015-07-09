@@ -58,7 +58,7 @@ function! s:set_hilight_ch() abort
   endif
 
   call add(s:save_ch, s:getchar_on('j'))
-  if !s:is_block(s:getchar_on('j')) && s:getchar_on('j') !=# s:player_ch
+  if s:getchar_on_cursor() !=# s:player_ch
     call s:setchar_on('j', '.')
   endif
   call add(s:save_ch, s:getchar_on('k'))
@@ -276,8 +276,8 @@ function! s:generate_block(dir) abort
     endif
   elseif a:dir ==# 'j'
     if s:getchar_on_cursor() != s:player_ch
+      call s:reset_hilight_ch()
       if s:is_movable(a:dir)
-        call s:reset_hilight_ch()
         execute 'normal! jr' . s:gen_block_ch
         call s:set_hilight_ch()
         let s:gen_length += 1
@@ -288,7 +288,6 @@ function! s:generate_block(dir) abort
           return
         endif
         call s:move_up_player_and_gen_blocks()
-        call s:reset_hilight_ch()
         execute 'normal! r' . s:gen_block_ch
         call s:set_hilight_ch()
         call setpos('.', l:pos)
