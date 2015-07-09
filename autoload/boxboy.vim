@@ -401,6 +401,9 @@ function! s:key_events(key) abort
     elseif a:key ==# 'l'
       call s:generate_block('l')
     endif
+    if s:gen_length >= s:gen_length_max
+      call s:reset_hilight_ch()
+    endif
   else "player move
     if a:key ==# 'l'
       call s:right()
