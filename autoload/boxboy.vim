@@ -40,8 +40,53 @@ let s:users_guide = [
 
 " }}}}
 
+" Hilight {{{
+
+" ['h', 'j', 'k', 'l']
+let s:save_ch = []
+
+function! s:setchar_on(dir, ch) abort
+  let s:reverse_dir = {'h' : 'l', 'j' : 'k', 'k' : 'j', 'l' : 'h'}
+  execute 'normal! ' . a:dir . 'r' . a:ch
+  execute 'normal! ' . s:reverse_dir[a:dir]
+endfunction
+
+function! s:set_hilight_ch() abort
+  call add(s:save_ch, s:getchar_on('h'))
+  if !s:is_block(s:getchar_on('h')) && s:getchar_on('h') !=# s:player_ch
+    call s:setchar_on('h', '.')
+  endif
+
+  call add(s:save_ch, s:getchar_on('j'))
+  if !s:is_block(s:getchar_on('j')) && s:getchar_on('j') !=# s:player_ch
+    call s:setchar_on('j', '.')
+  endif
+  call add(s:save_ch, s:getchar_on('k'))
+  if !s:is_block(s:getchar_on('k')) && s:getchar_on('k') !=# s:player_ch
+    call s:setchar_on('k', '.')
+  endif
+  call add(s:save_ch, s:getchar_on('l'))
+  if !s:is_block(s:getchar_on('l')) && s:getchar_on('l') !=# s:player_ch
+    call s:setchar_on('l', '.')
+  endif
+endfunction
+
+function! s:reset_hilight_ch() abort
+  if s:save_ch == []
+    return
+  endif
+
+  call s:setchar_on('h', s:save_ch[0])
+  call s:setchar_on('j', s:save_ch[1])
+  call s:setchar_on('k', s:save_ch[2])
+  call s:setchar_on('l', s:save_ch[3])
+  let s:save_ch = []
+endfunction
+" }}}
+
 " Mode {{{
 function! s:init_mode() abort
+  call s:reset_hilight_ch()
   if s:player_pos != []
     call setpos('.', s:player_pos)
     let s:player_pos = []
@@ -60,6 +105,8 @@ function! s:toggle_mode() abort
   if s:mode
     echo 'PLAYER MOVE MODE'
 
+    call s:reset_hilight_ch()
+
     while s:is_fall()
       call s:move_down_gen_blocks()
     endwhile
@@ -73,6 +120,7 @@ function! s:toggle_mode() abort
     let s:gen_length = 0
     call s:erase_blocks()
     call s:down()
+    call s:set_hilight_ch()
     let s:player_pos = getpos('.')
   endif
   endfunction
@@ -221,13 +269,17 @@ let s:gen_length = 0
 function! s:generate_block(dir) abort
   if a:dir ==# 'h'
     if s:is_movable(a:dir)
+      call s:reset_hilight_ch()
       execute 'normal! hr' . s:gen_block_ch
+      call s:set_hilight_ch()
       let s:gen_length += 1
     endif
   elseif a:dir ==# 'j'
     if s:getchar_on_cursor() != s:player_ch
       if s:is_movable(a:dir)
+        call s:reset_hilight_ch()
         execute 'normal! jr' . s:gen_block_ch
+        call s:set_hilight_ch()
         let s:gen_length += 1
       else
         let l:pos = getpos('.')
@@ -236,7 +288,9 @@ function! s:generate_block(dir) abort
           return
         endif
         call s:move_up_player_and_gen_blocks()
+        call s:reset_hilight_ch()
         execute 'normal! r' . s:gen_block_ch
+        call s:set_hilight_ch()
         call setpos('.', l:pos)
         let s:player_pos[1] -= 1
         let s:gen_length += 1
@@ -244,12 +298,16 @@ function! s:generate_block(dir) abort
     endif
   elseif a:dir ==# 'k'
     if s:is_movable(a:dir)
+      call s:reset_hilight_ch()
       execute 'normal! kr' . s:gen_block_ch
+      call s:set_hilight_ch()
       let s:gen_length += 1
     endif
   elseif a:dir ==# 'l'
     if s:is_movable(a:dir)
+      call s:reset_hilight_ch()
       execute 'normal! lr' . s:gen_block_ch
+      call s:set_hilight_ch()
       let s:gen_length += 1
     endif
   endif
@@ -474,6 +532,10 @@ function! boxboy#main() abort
     autocmd!
     autocmd CursorMoved <buffer> call <SID>is_clear()
   augroup END
+
+  syntax match boxboy_dir /\./
+  highlight boxboy_dir_hi guibg=blue ctermbg=blue
+  highlight default link boxboy_dir boxboy_dir_hi
 
   redraw
 endfunction
