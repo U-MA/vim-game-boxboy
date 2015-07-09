@@ -458,16 +458,16 @@ function! boxboy#main() abort
   call s:setup_all()
 
   call s:disable_all_keys()
-  nnoremap <silent><buffer><nowait> h       :call <SID>key_events('h')<CR>
-  nnoremap <silent><buffer><nowait> j       :call <SID>key_events('j')<CR>
-  nnoremap <silent><buffer><nowait> k       :call <SID>key_events('k')<CR>
-  nnoremap <silent><buffer><nowait> l       :call <SID>key_events('l')<CR>
-  nnoremap <silent><buffer><nowait> <space> :call <SID>key_events(' ')<CR>
-  nnoremap <silent><buffer><nowait> f       :call <SID>key_events('f')<CR>
-  nnoremap <silent><buffer><nowait> x       :call <SID>key_events('x')<CR>
-  nnoremap <silent><buffer><nowait> t       :call <SID>toggle_mode()<CR>
-  nnoremap <silent><buffer><nowait> <esc>   :call <SID>init_mode()<CR>
-  nnoremap <silent><buffer><nowait> r       :call <SID>setup_all()<CR>
+  nnoremap <silent><buffer><nowait> h       :<C-u>call <SID>key_events('h')<CR>
+  nnoremap <silent><buffer><nowait> j       :<C-u>call <SID>key_events('j')<CR>
+  nnoremap <silent><buffer><nowait> k       :<C-u>call <SID>key_events('k')<CR>
+  nnoremap <silent><buffer><nowait> l       :<C-u>call <SID>key_events('l')<CR>
+  nnoremap <silent><buffer><nowait> <space> :<C-u>call <SID>key_events(' ')<CR>
+  nnoremap <silent><buffer><nowait> f       :<C-u>call <SID>key_events('f')<CR>
+  nnoremap <silent><buffer><nowait> x       :<C-u>call <SID>key_events('x')<CR>
+  nnoremap <silent><buffer><nowait> t       :<C-u>call <SID>toggle_mode()<CR>
+  nnoremap <silent><buffer><nowait> <esc>   :<C-u>call <SID>init_mode()<CR>
+  nnoremap <silent><buffer><nowait> r       :<C-u>call <SID>setup_all()<CR>
   nnoremap <silent><buffer><nowait> Q       :<C-u>bd!<CR>
 
   augroup BoxBoy
