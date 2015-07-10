@@ -46,12 +46,6 @@ let s:users_guide = [
 " ['h', 'j', 'k', 'l']
 let s:save_ch = []
 
-function! s:setchar_on(dir, ch) abort
-  let s:reverse_dir = {'h' : 'l', 'j' : 'k', 'k' : 'j', 'l' : 'h'}
-  execute 'normal! ' . a:dir . 'r' . a:ch
-  execute 'normal! ' . s:reverse_dir[a:dir]
-endfunction
-
 function! s:set_hilight_ch() abort
   call add(s:save_ch, s:getchar_on('h'))
   if !s:is_block(s:getchar_on('h')) && s:getchar_on('h') !=# s:player_ch
@@ -83,6 +77,7 @@ function! s:reset_hilight_ch() abort
   call s:setchar_on('l', s:save_ch[3])
   let s:save_ch = []
 endfunction
+
 " }}}
 
 " Mode {{{
@@ -224,6 +219,12 @@ function! s:is_clear() abort
 
     return 1
   endif
+endfunction
+
+function! s:setchar_on(dir, ch) abort
+  let s:reverse_dir = {'h' : 'l', 'j' : 'k', 'k' : 'j', 'l' : 'h'}
+  execute 'normal! ' . a:dir . 'r' . a:ch
+  execute 'normal! ' . s:reverse_dir[a:dir]
 endfunction
 
 function! s:getchar_on_cursor() abort
