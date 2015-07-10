@@ -47,21 +47,27 @@ let s:users_guide = [
 let s:save_ch = []
 
 function! s:set_hilight_ch() abort
-  call add(s:save_ch, s:getchar_on('h'))
-  if !s:is_block(s:getchar_on('h')) && s:getchar_on('h') !=# s:player_ch
+  let l:ch = s:getchar_on('h')
+  call add(s:save_ch, l:ch)
+  if !s:is_block(l:ch) && l:ch !=# s:player_ch
     call s:setchar_on('h', '.')
   endif
 
-  call add(s:save_ch, s:getchar_on('j'))
+  let l:ch = s:getchar_on('j')
+  call add(s:save_ch, l:ch)
   if s:getchar_on_cursor() !=# s:player_ch
     call s:setchar_on('j', '.')
   endif
-  call add(s:save_ch, s:getchar_on('k'))
-  if !s:is_block(s:getchar_on('k')) && s:getchar_on('k') !=# s:player_ch
+
+  let l:ch = s:getchar_on('k')
+  call add(s:save_ch, l:ch)
+  if !s:is_block(l:ch) && l:ch !=# s:player_ch
     call s:setchar_on('k', '.')
   endif
-  call add(s:save_ch, s:getchar_on('l'))
-  if !s:is_block(s:getchar_on('l')) && s:getchar_on('l') !=# s:player_ch
+
+  let l:ch = s:getchar_on('l')
+  call add(s:save_ch, l:ch)
+  if !s:is_block(l:ch) && l:ch !=# s:player_ch
     call s:setchar_on('l', '.')
   endif
 endfunction
