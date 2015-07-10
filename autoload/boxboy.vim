@@ -286,6 +286,10 @@ function! s:generate_block(dir) abort
           call setpos('.', l:pos)
           return
         endif
+        if s:getchar_on('j') ==# s:gen_block_ch
+          call setpos('.', l:pos)
+          return
+        endif
         call s:move_up_player_and_gen_blocks()
         execute 'normal! r' . s:gen_block_ch
         call s:set_hilight_ch()
