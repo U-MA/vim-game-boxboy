@@ -20,6 +20,7 @@ function! s:init_player_information() abort
   let s:mode         = 0
   let s:previous_dir = 'l'
   let s:player_pos   = []
+  let s:save_ch      = []
 endfunction
 " }}}
 
@@ -135,13 +136,13 @@ function! s:toggle_mode() abort
 
 function! s:is_fall() abort
   let l:pos = getpos('.')
-  execute 'normal! ' . (line('$')-3-len(s:users_guide)) . 'G'
+  execute 'normal! ' . s:stage_bottom_line . 'G'
   let l:l = search('#', 'bW')
   if !l:l
     call setpos('.', l:pos)
     return 0
   endif
-  execute 'normal! ' . (line('$')-3-len(s:users_guide)) . 'G'
+  execute 'normal! ' . s:stage_bottom_line. 'G'
   while search('#', 'bW') == l:l
     if !s:is_movable('j')
       call setpos('.', l:pos)
@@ -170,7 +171,7 @@ endfunction
 function! s:move_up_player_and_gen_blocks() abort
   let l:pos = getpos('.')
   execute 'normal! gg0'
-  while search('[A#]', 'W', line('$')-3-len(s:users_guide))
+  while search('[A#]', 'W', s:stage_bottom_line)
     call s:move_ch_on_cursor_to('k')
   endwhile
   call setpos('.', l:pos)
@@ -178,7 +179,7 @@ endfunction
 
 function! s:move_down_gen_blocks() abort
   let l:pos = getpos('.')
-  execute 'normal! ' . (line('$')-3-len(s:users_guide)) . 'G'
+  execute 'normal! ' . s:stage_bottom_line . 'G'
   while search('#', 'bW')
     call s:move_ch_on_cursor_to('j')
   endwhile
@@ -199,7 +200,7 @@ endfunction
 
 function! s:search_goal() abort
   execute 'normal! gg0'
-  return search('G', 'W', line('$')-3-len(s:users_guide)) "TODO: erase magic number
+  return search('G', 'W', s:stage_bottom_line)
 endfunction
 
 function! s:is_clear() abort
@@ -483,9 +484,11 @@ let s:gen_max        = 0 " the max of generatable blocks
 let s:gen_length_max = 0 " the max length of generating blocks once
 
 let s:nstages = len(s:stage_set)
+let s:stage_bottom_line = 0
 
 function! s:draw_stage_and_information() abort
   call setline(1, s:stage['stage'])
+  let s:stage_bottom_line = line('$')
   call setline(line('$')+1, '')
   call setline(line('$')+1, 'MAX GENERATE: ' . s:stage['gen_max'])
   call setline(line('$')+1, 'MAX GENERATE LENGTH: ' . s:stage['gen_length'])
