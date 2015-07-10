@@ -490,7 +490,6 @@ function! s:draw_stage_and_information() abort
   call setline(1, s:stage['stage'])
   let s:stage_bottom_line = line('$')
   call setline(line('$')+1, '')
-  call setline(line('$')+1, 'MAX GENERATE: ' . s:stage['gen_max'])
   call setline(line('$')+1, 'MAX GENERATE LENGTH: ' . s:stage['gen_length'])
   call setline(line('$')+1, '')
   for l:line in s:users_guide
