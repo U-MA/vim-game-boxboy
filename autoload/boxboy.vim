@@ -484,14 +484,11 @@ let s:gen_length_max = 0 " the max length of generating blocks once
 
 let s:nstages = len(s:stage_set)
 
-function! s:draw_stage() abort
+function! s:draw_stage_and_information() abort
   call setline(1, s:stage['stage'])
   call setline(line('$')+1, '')
   call setline(line('$')+1, 'MAX GENERATE: ' . s:stage['gen_max'])
   call setline(line('$')+1, 'MAX GENERATE LENGTH: ' . s:stage['gen_length'])
-endfunction
-
-function! s:draw_users_guide() abort
   call setline(line('$')+1, '')
   for l:line in s:users_guide
     call setline(line('$')+1, l:line)
@@ -499,8 +496,7 @@ function! s:draw_users_guide() abort
 endfunction
 
 function! s:setup_stage() abort
-  call s:draw_stage()
-  call s:draw_users_guide()
+  call s:draw_stage_and_information()
   let s:gen_max        = s:stage['gen_max']
   let s:gen_length_max = s:stage['gen_length']
 endfunction
