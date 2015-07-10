@@ -55,7 +55,7 @@ function! s:set_hilight_ch() abort
 
   let l:ch = s:getchar_on('j')
   call add(s:save_ch, l:ch)
-  if s:getchar_on_cursor() !=# s:player_ch
+  if s:getchar_on_cursor() !=# s:player_ch && l:ch !=# '#' && l:ch !=# s:player_ch
     call s:setchar_on('j', '.')
   endif
 
