@@ -498,9 +498,9 @@ function! s:draw_stage_and_information() abort
 endfunction
 
 function! s:setup_stage() abort
-  call s:draw_stage_and_information()
   let s:gen_max        = s:stage['gen_max']
   let s:gen_length_max = s:stage['gen_length']
+  call s:draw_stage_and_information()
 endfunction
 
 function! s:setup_all() abort
@@ -513,7 +513,6 @@ endfunction
 
 function! boxboy#main() abort
   tabnew boxboy
-  call s:setup_all()
 
   call s:disable_all_keys()
   nnoremap <silent><buffer><nowait> h       :<C-u>call <SID>key_events('h')<CR>
@@ -536,6 +535,8 @@ function! boxboy#main() abort
   syntax match boxboy_dir /\./
   highlight boxboy_dir_hi guibg=blue ctermbg=blue
   highlight default link boxboy_dir boxboy_dir_hi
+
+  call s:setup_all()
 
   redraw
 endfunction
