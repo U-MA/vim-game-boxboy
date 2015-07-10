@@ -87,7 +87,7 @@ endfunction
 " }}}
 
 " Mode {{{
-function! s:init_mode() abort
+function! s:switch_to_moving_mode() abort
   call s:reset_hilight_ch()
   if s:player_pos != []
     call setpos('.', s:player_pos)
@@ -106,16 +106,7 @@ endfunction
 function! s:toggle_mode() abort
   if s:mode
     echo 'PLAYER MOVE MODE'
-
-    call s:reset_hilight_ch()
-
-    while s:is_fall()
-      call s:move_down_gen_blocks()
-    endwhile
-
-    let s:mode = 0
-    call setpos('.', s:player_pos)
-    let s:player_pos = []
+    call s:switch_to_moving_mode()
   else
     echo 'BLOCK GENERATE MODE'
     let s:mode = 1
@@ -530,7 +521,7 @@ function! boxboy#main() abort
   nnoremap <silent><buffer><nowait> f       :<C-u>call <SID>key_events('f')<CR>
   nnoremap <silent><buffer><nowait> x       :<C-u>call <SID>key_events('x')<CR>
   nnoremap <silent><buffer><nowait> t       :<C-u>call <SID>toggle_mode()<CR>
-  nnoremap <silent><buffer><nowait> <esc>   :<C-u>call <SID>init_mode()<CR>
+  nnoremap <silent><buffer><nowait> <esc>   :<C-u>call <SID>switch_to_moving_mode()<CR>
   nnoremap <silent><buffer><nowait> r       :<C-u>call <SID>setup_all()<CR>
   nnoremap <silent><buffer><nowait> Q       :<C-u>bd!<CR>
 
