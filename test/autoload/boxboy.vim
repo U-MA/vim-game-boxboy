@@ -118,4 +118,50 @@ endfunction
 
 " }}}
 
+" is_fall() {{{
+
+function! s:test_is_fall_returns_1_when_genblock_can_fall()
+  call s:create_tab()
+  call s:add_lines([
+    \ '=====',
+    \ '=   =',
+    \ '=#  =',
+    \ '=   =',
+    \ '=====',
+    \])
+
+  OwlCheck s:is_fall()
+  call s:close_tab()
+endfunction
+
+function! s:test_is_fall_returns_0_when_genblock_cannot_fall()
+  call s:create_tab()
+  call s:add_lines([
+    \ '=====',
+    \ '=   =',
+    \ '=   =',
+    \ '=#  =',
+    \ '=====',
+    \])
+
+  OwlCheck !s:is_fall()
+  call s:close_tab()
+endfunction
+
+function! s:test_is_fall_returns_0_following_case()
+  call s:create_tab()
+  call s:add_lines([
+    \ '=====',
+    \ '=## =',
+    \ '=A# =',
+    \ '==  =',
+    \ '=====',
+    \])
+
+  OwlCheck !s:is_fall()
+  call s:close_tab()
+endfunction
+
+" }}}
+
 " vim: foldmethod=marker
