@@ -302,6 +302,7 @@ function! s:generate_block(dir) abort
       else
         let l:pos = getpos('.')
         if !s:is_lift() || s:getchar_on('j') ==# s:player_ch
+          call s:set_hilight_ch()
           call setpos('.', l:pos)
           return
         endif
