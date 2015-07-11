@@ -92,4 +92,30 @@ function! s:test_erase_blocks_func_erase_generated_blocks()
 endfunction
 " }}}
 
+" ModeTest {{{
+
+function! s:test_ModeTest_switch_to_func_switch_the_mode()
+  call s:create_tab()
+  OwlCheck !s:switch_to('move')
+  OwlCheck s:get_mode() == 0
+  OwlCheck !s:switch_to('gen')
+  OwlCheck s:get_mode() == 1
+  OwlCheck !s:switch_to('move')
+  OwlCheck s:get_mode() == 0
+  call s:close_tab()
+endfunction
+
+function! s:test_ModeTest_switch_to_func_switch_the_mode_whichever_the_previous_mode_is()
+  call s:create_tab()
+  OwlCheck !s:switch_to('move')
+  OwlCheck !s:switch_to('move')
+  OwlCheck s:get_mode() == 0
+  call s:close_tab()
+  OwlCheck !s:switch_to('gen')
+  OwlCheck !s:switch_to('gen')
+  OwlCheck s:get_mode() == 1
+endfunction
+
+" }}}
+
 " vim: foldmethod=marker
