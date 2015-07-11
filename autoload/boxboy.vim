@@ -281,21 +281,24 @@ endfunction
 
 let s:gen_length = 0
 
+function! s:set_gen_block_on(dir) abort
+  execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
+  let s:gen_length += 1
+endfunction
+
 function! s:generate_block(dir) abort
   if a:dir ==# 'h'
     if s:is_movable(a:dir)
       call s:reset_hilight_ch()
-      execute 'normal! hr' . s:gen_block_ch
+      call s:set_gen_block_on(a:dir)
       call s:set_hilight_ch()
-      let s:gen_length += 1
     endif
   elseif a:dir ==# 'j'
     if s:getchar_on_cursor() != s:player_ch
       call s:reset_hilight_ch()
       if s:is_movable(a:dir)
-        execute 'normal! jr' . s:gen_block_ch
+        call s:set_gen_block_on(a:dir)
         call s:set_hilight_ch()
-        let s:gen_length += 1
       else
         let l:pos = getpos('.')
         if !s:is_lift() || s:getchar_on('j') ==# s:player_ch
@@ -307,25 +310,22 @@ function! s:generate_block(dir) abort
           return
         endif
         call s:move_up_player_and_gen_blocks()
-        execute 'normal! r' . s:gen_block_ch
+        call s:set_gen_block_on('')
         call s:set_hilight_ch()
         call setpos('.', l:pos)
-        let s:gen_length += 1
       endif
     endif
   elseif a:dir ==# 'k'
     if s:is_movable(a:dir)
       call s:reset_hilight_ch()
-      execute 'normal! kr' . s:gen_block_ch
+      call s:set_gen_block_on(a:dir)
       call s:set_hilight_ch()
-      let s:gen_length += 1
     endif
   elseif a:dir ==# 'l'
     if s:is_movable(a:dir)
       call s:reset_hilight_ch()
-      execute 'normal! lr' . s:gen_block_ch
+      call s:set_gen_block_on(a:dir)
       call s:set_hilight_ch()
-      let s:gen_length += 1
     endif
   endif
 endfunction
