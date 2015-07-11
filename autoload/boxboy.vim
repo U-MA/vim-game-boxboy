@@ -100,9 +100,7 @@ function! s:ready_to_switch(mode) abort
       call setpos('.', s:player_pos)
       let s:player_pos = []
     endif
-    while s:is_fall()
-      call s:move_down_gen_blocks()
-    endwhile
+    call s:genblocks_fall_if_possible()
   else
     let s:gen_length = 0
     call s:erase_blocks()
@@ -447,10 +445,7 @@ function! s:key_events(key) abort
       call s:down()
     endif
 
-  while s:is_fall()
-    call s:move_down_gen_blocks()
-  endwhile
-
+    call s:genblocks_fall_if_possible()
   endif
 endfunction
 "}}}
@@ -493,6 +488,16 @@ function! s:disable_all_keys() abort
     execute 'vnoremap <silent><buffer><nowait> g' . nr2char(key) . ' <Nop>'
     execute 'onoremap <silent><buffer><nowait> g' . nr2char(key) . ' <Nop>'
   endfor
+endfunction
+
+" }}}
+
+" Animation {{{
+
+function! s:genblocks_fall_if_possible() abort
+  while s:is_fall()
+    call s:move_down_gen_blocks()
+  endwhile
 endfunction
 
 " }}}
