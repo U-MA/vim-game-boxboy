@@ -287,7 +287,7 @@ function! s:set_gen_block_on(dir) abort
 endfunction
 
 function! s:generate_block(dir) abort
-  if a:dir ==# 'h'
+  if a:dir =~# '[hkl]'
     if s:is_movable(a:dir)
       call s:reset_hilight_ch()
       call s:set_gen_block_on(a:dir)
@@ -314,18 +314,6 @@ function! s:generate_block(dir) abort
         call s:set_hilight_ch()
         call setpos('.', l:pos)
       endif
-    endif
-  elseif a:dir ==# 'k'
-    if s:is_movable(a:dir)
-      call s:reset_hilight_ch()
-      call s:set_gen_block_on(a:dir)
-      call s:set_hilight_ch()
-    endif
-  elseif a:dir ==# 'l'
-    if s:is_movable(a:dir)
-      call s:reset_hilight_ch()
-      call s:set_gen_block_on(a:dir)
-      call s:set_hilight_ch()
     endif
   endif
 endfunction
