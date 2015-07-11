@@ -87,34 +87,57 @@ endfunction
 " }}}
 
 " Mode {{{
-function! s:switch_to_moving_mode() abort
-  call s:reset_hilight_ch()
-  if s:player_pos != []
-    call setpos('.', s:player_pos)
-    let s:player_pos = []
-  endif
-  let s:mode = 0
-  while s:is_fall()
-    call s:move_down_gen_blocks()
-  endwhile
-endfunction
 
 function! s:get_mode() abort
   return s:mode
 endfunction
 
-function! s:toggle_mode() abort
-  if s:mode
-    echo 'PLAYER MOVE MODE'
-    call s:switch_to_moving_mode()
+" a:mode == 'move' or 'gen'
+function! s:ready_to_switch(mode) abort
+  if a:mode ==# 'move'
+    call s:reset_hilight_ch()
+    if s:player_pos != []
+      call setpos('.', s:player_pos)
+      let s:player_pos = []
+    endif
+    while s:is_fall()
+      call s:move_down_gen_blocks()
+    endwhile
   else
-    echo 'BLOCK GENERATE MODE'
-    let s:mode = 1
     let s:gen_length = 0
     call s:erase_blocks()
     call s:down()
     call s:set_hilight_ch()
     let s:player_pos = getpos('.')
+  endif
+endfunction
+
+" a:mode == 'move' or 'gen'
+function! s:switch_to(mode) abort
+  if a:mode ==# 'move'
+    let s:mode = 0
+  else
+    let s:mode = 1
+  endif
+endfunction
+
+function! s:toggle_to(mode) abort
+  if a:mode ==# 'move'
+    call s:ready_to_switch('move')
+    call s:switch_to('move')
+    echo 'PLAYER MOVE MODE'
+  else
+    call s:ready_to_switch('gen')
+    call s:switch_to('gen')
+    echo 'BLOCK GENERATE MODE'
+  endif
+endfunction
+
+function! s:toggle_mode() abort
+  if s:mode
+    call s:toggle_to('move')
+  else
+    call s:toggle_to('gen')
   endif
   endfunction
 " }}}
@@ -525,7 +548,7 @@ function! boxboy#main() abort
   nnoremap <silent><buffer><nowait> f       :<C-u>call <SID>key_events('f')<CR>
   nnoremap <silent><buffer><nowait> x       :<C-u>call <SID>key_events('x')<CR>
   nnoremap <silent><buffer><nowait> t       :<C-u>call <SID>toggle_mode()<CR>
-  nnoremap <silent><buffer><nowait> <esc>   :<C-u>call <SID>switch_to_moving_mode()<CR>
+  nnoremap <silent><buffer><nowait> <esc>   :<C-u>call <SID>toggle_to('move')<CR>
   nnoremap <silent><buffer><nowait> r       :<C-u>call <SID>setup_all()<CR>
   nnoremap <silent><buffer><nowait> Q       :<C-u>bd!<CR>
 
