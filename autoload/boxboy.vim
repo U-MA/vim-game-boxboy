@@ -287,36 +287,18 @@ function! s:set_gen_block_on(dir) abort
 endfunction
 
 function! s:generate_block(dir) abort
-  if a:dir =~# '[hkl]'
-    if s:is_movable(a:dir)
-      call s:reset_hilight_ch()
-      call s:set_gen_block_on(a:dir)
-      call s:set_hilight_ch()
-    endif
-  elseif a:dir ==# 'j'
-    if s:getchar_on_cursor() != s:player_ch
-      call s:reset_hilight_ch()
-      if s:is_movable(a:dir)
-        call s:set_gen_block_on(a:dir)
-        call s:set_hilight_ch()
-      else
-        let l:pos = getpos('.')
-        if !s:is_lift() || s:getchar_on('j') ==# s:player_ch
-          call s:set_hilight_ch()
-          call setpos('.', l:pos)
-          return
-        endif
-        if s:getchar_on('j') ==# s:gen_block_ch
-          call setpos('.', l:pos)
-          return
-        endif
+  call s:reset_hilight_ch()
+  if s:is_movable(a:dir)
+    call s:set_gen_block_on(a:dir)
+  else
+    if a:dir ==# 'j' && s:getchar_on_cursor() !=# s:player_ch
+      if s:is_lift() && s:getchar_on('j') !~# '[A#]'
         call s:move_up_player_and_gen_blocks()
         call s:set_gen_block_on('')
-        call s:set_hilight_ch()
-        call setpos('.', l:pos)
       endif
     endif
   endif
+  call s:set_hilight_ch()
 endfunction
 
 " }}}
