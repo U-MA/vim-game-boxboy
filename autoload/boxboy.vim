@@ -14,12 +14,10 @@ let s:player_ch = 'A'
 "   1: block generate mode
 let s:mode         = 0
 let s:previous_dir = 'l'
-let s:player_pos   = []
 
 function! s:init_player_information() abort
   let s:mode         = 0
   let s:previous_dir = 'l'
-  let s:player_pos   = []
   let s:save_ch      = []
 endfunction
 " }}}
@@ -96,17 +94,14 @@ endfunction
 function! s:ready_to_switch(mode) abort
   if a:mode ==# 'move'
     call s:reset_hilight_ch()
-    if s:player_pos != []
-      call setpos('.', s:player_pos)
-      let s:player_pos = []
-    endif
+    execute 'normal! gg0'
+    call search(s:player_ch, 'w', s:stage_bottom_line)
     call s:genblocks_fall_if_possible()
   else
     let s:gen_length = 0
     call s:erase_blocks()
     call s:down()
     call s:set_hilight_ch()
-    let s:player_pos = getpos('.')
   endif
 endfunction
 
@@ -315,7 +310,6 @@ function! s:generate_block(dir) abort
         execute 'normal! r' . s:gen_block_ch
         call s:set_hilight_ch()
         call setpos('.', l:pos)
-        let s:player_pos[1] -= 1
         let s:gen_length += 1
       endif
     endif
