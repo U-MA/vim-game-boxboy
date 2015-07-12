@@ -286,6 +286,9 @@ endfunction
 
 function! s:generate_block(dir) abort
   if s:is_movable(a:dir) && s:getchar_on(a:dir) !=# 'G'
+    if s:gen_length == 0 && a:dir =~# '[hl]'
+      let s:previous_dir = a:dir
+    endif
     call s:set_gen_block_on(a:dir)
   else
     if a:dir ==# 'j' && s:getchar_on_cursor() !=# s:player_ch
