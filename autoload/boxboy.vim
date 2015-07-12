@@ -118,8 +118,10 @@ endfunction
 
 function! s:toggle_mode() abort
   if s:mode
+    highlight boxboy_player ctermfg=NONE
     call s:toggle_to('move')
   else
+    highlight boxboy_player ctermfg=magenta
     call s:toggle_to('gen')
   endif
   endfunction
@@ -529,9 +531,13 @@ function! boxboy#main() abort
     autocmd CursorMoved <buffer> call <SID>is_clear()
   augroup END
 
-  syntax match boxboy_dir /\./
+  syntax match boxboy_dir /\./ contained
+  syntax match boxboy_player /A/ contained
+  syntax region boxboy_stage start=/\%^/ end=/^$/ contains=boxboy_dir,boxboy_player
   highlight boxboy_dir_hi guibg=blue ctermbg=blue
+  highlight boxboy_player_hi guifg=cyan ctermfg=cyan
   highlight default link boxboy_dir boxboy_dir_hi
+  "highlight default link boxboy_player boxboy_player_hi
 
   call s:setup_all()
 
