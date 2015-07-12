@@ -161,7 +161,7 @@ function! s:is_fall() abort
   return 1
 endfunction
 
-function! s:is_lift() abort
+function! s:can_lift() abort
   let l:pos = getpos('.')
   execute 'normal! gg0'
   let l:l = search('[A#]', 'W')
@@ -176,7 +176,7 @@ function! s:is_lift() abort
   return 1
 endfunction
 
-function! s:move_up_player_and_gen_blocks() abort
+function! s:lift_up_player_and_gen_blocks() abort
   let l:pos = getpos('.')
   execute 'normal! gg0'
   while search('[A#]', 'W', s:stage_bottom_line)
@@ -291,8 +291,8 @@ function! s:generate_block(dir) abort
     call s:set_gen_block_on(a:dir)
   else
     if a:dir ==# 'j' && s:getchar_on_cursor() !=# s:player_ch
-      if s:is_lift() && s:getchar_on('j') !~# '[A#]'
-        call s:move_up_player_and_gen_blocks()
+      if s:can_lift() && s:getchar_on('j') !~# '[A#]'
+        call s:lift_up_player_and_gen_blocks()
         call s:set_gen_block_on('')
       endif
     endif
