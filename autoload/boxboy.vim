@@ -287,7 +287,6 @@ function! s:set_gen_block_on(dir) abort
 endfunction
 
 function! s:generate_block(dir) abort
-  call s:reset_hilight_ch()
   if s:is_movable(a:dir)
     call s:set_gen_block_on(a:dir)
   else
@@ -298,7 +297,6 @@ function! s:generate_block(dir) abort
       endif
     endif
   endif
-  call s:set_hilight_ch()
 endfunction
 
 " }}}
@@ -380,6 +378,7 @@ function! s:key_events(key) abort
       return
     endif
 
+    call s:reset_hilight_ch()
     if a:key ==# 'h'
       call s:generate_block('h')
     elseif a:key ==# 'j'
@@ -389,8 +388,8 @@ function! s:key_events(key) abort
     elseif a:key ==# 'l'
       call s:generate_block('l')
     endif
-    if s:gen_length >= s:gen_length_max
-      call s:reset_hilight_ch()
+    if s:gen_length < s:gen_length_max
+      call s:set_hilight_ch()
     endif
   else "player move
     if a:key ==# 'l'
