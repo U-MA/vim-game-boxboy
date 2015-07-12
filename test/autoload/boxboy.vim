@@ -118,9 +118,9 @@ endfunction
 
 " }}}
 
-" is_fall() {{{
+" can_fall() {{{
 
-function! s:test_is_fall_returns_1_when_genblock_can_fall()
+function! s:test_can_fall_returns_1_when_genblock_can_fall()
   call s:create_tab()
   call s:add_lines([
     \ '=====',
@@ -130,11 +130,11 @@ function! s:test_is_fall_returns_1_when_genblock_can_fall()
     \ '=====',
     \])
 
-  OwlCheck s:is_fall()
+  OwlCheck s:can_fall()
   call s:close_tab()
 endfunction
 
-function! s:test_is_fall_returns_0_when_genblock_cannot_fall()
+function! s:test_can_fall_returns_0_when_genblock_cannot_fall()
   call s:create_tab()
   call s:add_lines([
     \ '=====',
@@ -144,11 +144,11 @@ function! s:test_is_fall_returns_0_when_genblock_cannot_fall()
     \ '=====',
     \])
 
-  OwlCheck !s:is_fall()
+  OwlCheck !s:can_fall()
   call s:close_tab()
 endfunction
 
-function! s:test_is_fall_returns_0_following_case()
+function! s:test_can_fall_returns_0_following_case()
   call s:create_tab()
   call s:add_lines([
     \ '=====',
@@ -158,7 +158,7 @@ function! s:test_is_fall_returns_0_following_case()
     \ '=====',
     \])
 
-  OwlCheck !s:is_fall()
+  OwlCheck !s:can_fall()
   call s:close_tab()
 endfunction
 

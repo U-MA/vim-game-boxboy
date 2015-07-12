@@ -144,15 +144,9 @@ function! s:toggle_mode() abort
 
 function! s:can_fall() abort
   let l:pos = getpos('.')
-  execute 'normal! ' . s:stage_bottom_line . 'G'
-  let l:l = search('#', 'bW')
-  if !l:l
-    call setpos('.', l:pos)
-    return 0
-  endif
-  execute 'normal! ' . s:stage_bottom_line. 'G'
-  while search('#', 'bW') == l:l
-    if !s:is_movable('j')
+  execute 'normal! gg0'
+  while search('#', 'W')
+    if s:getchar_on('j') =~# '[=AO]'
       call setpos('.', l:pos)
       return 0
     endif
@@ -273,6 +267,14 @@ endfunction
 function! s:is_movable(dir) abort
   let c = s:getchar_on(a:dir)
   return !s:is_block(c) && (c !=# s:player_ch)
+endfunction
+
+function! s:exist_genblocks() abort
+  let l:pos = getpos('.')
+  execute 'normal! gg0'
+  let l:is_exist = search('#', 'W')
+  call setpos('.', l:pos)
+  return l:is_exist
 endfunction
 
 " }}}
@@ -459,9 +461,11 @@ endfunction
 " Animation {{{
 
 function! s:genblocks_fall_if_possible() abort
-  while s:can_fall()
-    call s:move_down_gen_blocks()
-  endwhile
+  if s:exist_genblocks()
+    while s:can_fall()
+      call s:move_down_gen_blocks()
+    endwhile
+  endif
 endfunction
 
 " }}}
