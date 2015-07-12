@@ -164,4 +164,25 @@ endfunction
 
 " }}}
 
+" set_hilight_ch() {{{
+
+function! s:test_set_hilight_ch_dont_erase_goal_ch()
+  call s:create_tab()
+  call s:add_lines([
+    \ '=====',
+    \ '=   =',
+    \ '=   =',
+    \ '= SG=',
+    \ '=====',
+    \])
+  OwlCheck !s:set_gen_length_max(1)
+  OwlCheck !s:move_cursor_to_start()
+  OwlCheck !s:set_player_to_cursor()
+  OwlCheck !s:toggle_mode()
+  OwlCheck s:search_goal()
+  call s:close_tab()
+endfunction
+
+" }}}
+
 " vim: foldmethod=marker

@@ -47,25 +47,25 @@ let s:save_ch = []
 function! s:set_hilight_ch() abort
   let l:ch = s:getchar_on('h')
   call add(s:save_ch, l:ch)
-  if !s:is_block(l:ch) && l:ch !=# s:player_ch
+  if !s:is_block(l:ch) && l:ch !=# s:player_ch && l:ch !=# 'G'
     call s:setchar_on('h', '.')
   endif
 
   let l:ch = s:getchar_on('j')
   call add(s:save_ch, l:ch)
-  if s:getchar_on_cursor() !=# s:player_ch && l:ch !=# '#' && l:ch !=# s:player_ch
+  if s:getchar_on_cursor() !=# s:player_ch && l:ch !=# '#' && l:ch !=# s:player_ch && l:ch !=# 'G'
     call s:setchar_on('j', '.')
   endif
 
   let l:ch = s:getchar_on('k')
   call add(s:save_ch, l:ch)
-  if !s:is_block(l:ch) && l:ch !=# s:player_ch
+  if !s:is_block(l:ch) && l:ch !=# s:player_ch && l:ch !=# 'G'
     call s:setchar_on('k', '.')
   endif
 
   let l:ch = s:getchar_on('l')
   call add(s:save_ch, l:ch)
-  if !s:is_block(l:ch) && l:ch !=# s:player_ch
+  if !s:is_block(l:ch) && l:ch !=# s:player_ch && l:ch !=# 'G'
     call s:setchar_on('l', '.')
   endif
 endfunction
@@ -141,6 +141,10 @@ function! s:toggle_mode() abort
 " }}}
 
 " Utility {{{
+
+function! s:set_gen_length_max(len) abort
+  let s:gen_length_max = a:len
+endfunction
 
 function! s:can_fall() abort
   let l:pos = getpos('.')
