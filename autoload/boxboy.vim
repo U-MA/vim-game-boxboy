@@ -283,7 +283,7 @@ function! s:set_gen_block_on(dir) abort
 endfunction
 
 function! s:generate_block(dir) abort
-  if s:is_movable(a:dir)
+  if s:is_movable(a:dir) && s:getchar_on(a:dir) !=# 'G'
     call s:set_gen_block_on(a:dir)
   else
     if a:dir ==# 'j' && s:getchar_on_cursor() !=# s:player_ch

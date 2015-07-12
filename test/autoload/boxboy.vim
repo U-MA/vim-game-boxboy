@@ -185,4 +185,26 @@ endfunction
 
 " }}}
 
+" generate_block() {{{
+
+function! s:test_generate_block_func_dont_generate_block_on_goal()
+  call s:create_tab()
+  call s:add_lines([
+    \ '=====',
+    \ '=   =',
+    \ '=   =',
+    \ '= SG=',
+    \ '=====',
+    \])
+  OwlCheck !s:set_gen_length_max(1)
+  OwlCheck !s:move_cursor_to_start()
+  OwlCheck !s:set_player_to_cursor()
+  OwlCheck !s:toggle_mode()
+  OwlCheck !s:key_events('l')
+  OwlCheck s:search_goal()
+  call s:close_tab()
+endfunction
+
+" }}}
+
 " vim: foldmethod=marker
