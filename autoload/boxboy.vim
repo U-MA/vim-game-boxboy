@@ -142,7 +142,7 @@ function! s:toggle_mode() abort
 
 " Utility {{{
 
-function! s:is_fall() abort
+function! s:can_fall() abort
   let l:pos = getpos('.')
   execute 'normal! ' . s:stage_bottom_line . 'G'
   let l:l = search('#', 'bW')
@@ -459,7 +459,7 @@ endfunction
 " Animation {{{
 
 function! s:genblocks_fall_if_possible() abort
-  while s:is_fall()
+  while s:can_fall()
     call s:move_down_gen_blocks()
   endwhile
 endfunction
