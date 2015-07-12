@@ -314,11 +314,16 @@ function! s:left() abort
 endfunction
 
 function! s:down() abort
+  if s:is_block(s:getchar_on('j'))
+    return
+  endif
+
   while !s:is_block(s:getchar_on('j'))
     sleep 250m
     execute 'normal! r jr' . s:player_ch
     redraw
   endwhile
+  sleep 150m
 endfunction
 
 function! s:jump() abort
