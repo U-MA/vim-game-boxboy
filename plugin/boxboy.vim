@@ -1,7 +1,7 @@
 " A game like boxboy(hacoboy)
 " Version: 0.80
 " Author: U-MA
-" Lisence: VIM LISENCE
+" Lisence: VIM LICENSE
 
 if exists('g:loaded_boxboy')
   finish

@@ -1,7 +1,7 @@
 " A game like boxboy(hacoboy)
 " Version: 0.80
 " Author: U-MA
-" Lisence: VIM LIAENCE
+" Lisence: VIM LICENSE
 
 let s:save_cpo = &cpo
 set cpo&vim
