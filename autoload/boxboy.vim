@@ -407,6 +407,15 @@ function! s:key_events(key) abort
     elseif a:key ==# ' '
       call s:jump()
       call s:down()
+
+      " for stop always jump
+      " But ugly code
+      " Hope beautiful code
+      let l:i = getchar(0)
+      while l:i
+        let l:i = getchar(0)
+      endwhile
+      call feedkeys(nr2char(l:i), 't')
     elseif a:key ==# 'f'
       call s:hook_shot()
       call s:down()
