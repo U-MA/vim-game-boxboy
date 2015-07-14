@@ -516,6 +516,7 @@ endfunction
 
 function! s:setup_all() abort
   %delete
+  highlight boxboy_player ctermfg=NONE
   call s:init_player_information()
   call s:setup_stage()
   call s:move_cursor_to_start()
