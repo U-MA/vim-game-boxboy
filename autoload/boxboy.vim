@@ -197,17 +197,17 @@ function! s:move_cursor_to_start() abort
 endfunction
 
 function! s:search_goal() abort
+  let l:pos = getpos('.')
   execute 'normal! gg0'
-  return search('G', 'W', s:stage_bottom_line)
+  let l:ret = search('G', 'W', s:stage_bottom_line)
+  call setpos('.', l:pos)
+  return l:ret
 endfunction
 
 function! s:is_clear() abort
-  let p = getpos('.')
   if s:search_goal()
-    call setpos('.', p)
     return 0
   else
-    call setpos('.', p)
     echo 'Clear'
 
     let s:current_stage_no += 1
