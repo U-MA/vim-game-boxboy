@@ -42,7 +42,7 @@ let s:users_guide = [
   \ '',
   \ '   h   : Move left',
   \ '   l   : Move right',
-  \ '<space>: Jump to previous direction',
+  \ '<space>: Jump',
   \ '   f   : Warp to O',
   \ '   t   : toggle user mode',
   \ '   x   : Erase all generated blocks',
