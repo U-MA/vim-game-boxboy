@@ -39,9 +39,16 @@ endfunction
 
 let s:users_guide = [
   \ '[ user guide ]',
-  \ 'r: Restart',
-  \ 'x: Erase all generated blocks',
-  \ 'Q: Quit game'
+  \ '',
+  \ '   h   : Move left',
+  \ '   l   : Move right',
+  \ '<space>: Jump to previous direction',
+  \ '   f   : Warp to O',
+  \ '   t   : toggle user mode',
+  \ '   x   : Erase all generated blocks',
+  \ '',
+  \ '   r   : Restart',
+  \ '   Q   : Quit game'
   \ ]
 
 " }}}}
@@ -211,8 +218,39 @@ function! s:search_goal() abort
   return l:ret
 endfunction
 
-function! s:is_clear() abort
+function! s:is_stage_with_button() abort
+  return s:stage['button']
+endfunction
+
+function! s:exist_button() abort
+  let l:pos = getpos('.')
+  execute 'normal! gg0'
+  let l:ret = search('_', 'W', s:stage_bottom_line)
+  call setpos('.', l:pos)
+  return l:ret
+endfunction
+
+function! s:open_door() abort
+  let l:pos = getpos('.')
+  if search('|', 'w')
+    silent %substitute/|/ /g
+  endif
+  call setpos('.', l:pos)
+endfunction
+
+function! s:close_door() abort
+  "TODO
+endfunction
+
+function! s:check_stage() abort
   if s:search_goal()
+    if s:is_stage_with_button() 
+      if !s:exist_button()
+        call s:open_door()
+      else
+        call s:close_door()
+      endif
+    endif
     return 0
   else
     echo 'Clear'
@@ -521,11 +559,21 @@ function! s:setup_stage() abort
   call s:draw_stage_and_information()
 endfunction
 
+let s:button_pos = []
+function! s:save_button_pos() abort
+  if search('_', 'w')
+    let s:button_pos = getpos('.')
+  else
+    let s:button_pos = []
+  endif
+endfunction
+
 function! s:setup_all() abort
   %delete
   highlight boxboy_player ctermfg=NONE
   call s:init_player_information()
   call s:setup_stage()
+  call s:save_button_pos()
   call s:move_cursor_to_start()
   call s:set_player_to_cursor()
 endfunction
@@ -548,7 +596,7 @@ function! boxboy#main() abort
 
   augroup BoxBoy
     autocmd!
-    autocmd CursorMoved <buffer> call <SID>is_clear()
+    autocmd CursorMoved <buffer> call <SID>check_stage()
   augroup END
 
   syntax match boxboy_dir /\./ contained
