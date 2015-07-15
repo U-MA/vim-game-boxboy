@@ -1,19 +1,20 @@
 " Tutorial
-call boxboy#add_stage('0', {
-  \ 'id'         : 0,
-  \ 'gen_max'    : 10,
-  \ 'gen_length' : 0,
-  \ 'stage'      : [
-  \   '=====================',
-  \   '=      h     l      =',
-  \   '=    <---- ---->    =',
-  \   '=====================',
-  \   '=         S         =',
-  \   '=      =======      =',
-  \   '=         G         =',
-  \   '=====================',
-  \ ],
-  \ })
+"call boxboy#add_stage('0', {
+"  \ 'id'         : 0,
+"  \ 'button'     : 0,
+"  \ 'gen_max'    : 10,
+"  \ 'gen_length' : 0,
+"  \ 'stage'      : [
+"  \   '=====================',
+"  \   '=      h     l      =',
+"  \   '=    <---- ---->    =',
+"  \   '=====================',
+"  \   '=         S         =',
+"  \   '=      =======      =',
+"  \   '=         G         =',
+"  \   '=====================',
+"  \ ],
+"  \ })
 
 " this stage is complex!!
 "call boxboy#add_stage('0', {
@@ -39,23 +40,25 @@ call boxboy#add_stage('0', {
 
 call boxboy#add_stage('0', {
   \ 'id'         : 0,
+  \ 'button'     : 0,
   \ 'gen_max'    : 10,
   \ 'gen_length' : 0,
   \ 'stage'      : [
-  \   '=======================',
-  \   '=           <space>   =',
-  \   '=     l       +->     =',
-  \   '=   ---->     |       =',
-  \   '=======================',
-  \   '=                     =',
-  \   '=                     =',
-  \   '=     S        =  G   =',
-  \   '=======================',
+  \   '=============================',
+  \   '=           <space>         =',
+  \   '=     l       +->           =',
+  \   '=   ---->     |             =',
+  \   '=============================',
+  \   '=                           =',
+  \   '=                     =     =',
+  \   '=     S        =     ==  G  =',
+  \   '=============================',
   \ ],
   \ })
 
 call boxboy#add_stage('0', {
   \ 'id'         : 0,
+  \ 'button'     : 0,
   \ 'gen_max'    : 10,
   \ 'gen_length' : 0,
   \ 'stage'      : [
@@ -74,6 +77,7 @@ call boxboy#add_stage('0', {
 " Use a block
 call boxboy#add_stage('0', {
   \ 'id'         : 0,
+  \ 'button'     : 0,
   \ 'gen_max'    : 10,
   \ 'gen_length' : 1,
   \ 'stage'      : [
@@ -89,7 +93,27 @@ call boxboy#add_stage('0', {
   \ })
 
 call boxboy#add_stage('0', {
+  \ 'id'         : 0,
+  \ 'button'     : 0,
+  \ 'gen_max'    : 10,
+  \ 'gen_length' : 1,
+  \ 'stage'      : [
+  \   '=========================',
+  \   '=           k           =',
+  \   '=           ^           =',
+  \   '=       h < t > l       =',
+  \   '=========================',
+  \   '=                       =',
+  \   '=                     G =',
+  \   '=              =     ====',
+  \   '= S    ===    ==     ====',
+  \   '=======   ===============',
+  \ ],
+  \ })
+
+call boxboy#add_stage('0', {
   \ 'id'         : 7,
+  \ 'button'     : 0,
   \ 'gen_max'    : 10,
   \ 'gen_length' : 1,
   \ 'stage'      : [
@@ -105,6 +129,7 @@ call boxboy#add_stage('0', {
 
 call boxboy#add_stage('0', {
   \ 'id'         : 10,
+  \ 'button'     : 0,
   \ 'gen_max'    : 10,
   \ 'gen_length' : 1,
   \ 'stage'      : [
@@ -122,6 +147,7 @@ call boxboy#add_stage('0', {
 " Use stairs
 call boxboy#add_stage('0', {
   \ 'id'         : 9,
+  \ 'button'     : 0,
   \ 'gen_max'    : 10,
   \ 'gen_length' : 3,
   \ 'stage'      : [
@@ -137,6 +163,7 @@ call boxboy#add_stage('0', {
 
 call boxboy#add_stage('0', {
   \ 'id'         : 11,
+  \ 'button'     : 0,
   \ 'gen_max'    : 10,
   \ 'gen_length' : 3,
   \ 'stage'      : [
@@ -153,6 +180,7 @@ call boxboy#add_stage('0', {
 " Use bridges
 call boxboy#add_stage('0', {
   \ 'id'         : 8,
+  \ 'button'     : 0,
   \ 'gen_max'    : 10,
   \ 'gen_length' : 3,
   \ 'stage'      : [
@@ -168,6 +196,7 @@ call boxboy#add_stage('0', {
 
 call boxboy#add_stage('0', {
   \ 'id'         : 8,
+  \ 'button'     : 0,
   \ 'gen_max'    : 10,
   \ 'gen_length' : 2,
   \ 'stage'      : [
@@ -183,6 +212,7 @@ call boxboy#add_stage('0', {
 
 call boxboy#add_stage('0', {
   \ 'id'         : 1,
+  \ 'button'     : 0,
   \ 'gen_max'    : 10,
   \ 'gen_length' : 4,
   \ 'stage'      : [
@@ -201,6 +231,7 @@ call boxboy#add_stage('0', {
 "Use hook shot
 call boxboy#add_stage('0', {
   \ 'id'         : 1,
+  \ 'button'     : 0,
   \ 'gen_max'    : 10,
   \ 'gen_length' : 3,
   \ 'stage'      : [
@@ -218,6 +249,7 @@ call boxboy#add_stage('0', {
 
 call boxboy#add_stage('0', {
   \ 'id'         : 1,
+  \ 'button'     : 0,
   \ 'gen_max'    : 10,
   \ 'gen_length' : 3,
   \ 'stage'      : [
@@ -239,6 +271,7 @@ call boxboy#add_stage('0', {
 
 call boxboy#add_stage('0', {
   \ 'id'         : 4,
+  \ 'button'     : 0,
   \ 'gen_max'    : 2,
   \ 'gen_length' : 2,
   \ 'stage'      : [
@@ -255,6 +288,7 @@ call boxboy#add_stage('0', {
 
 call boxboy#add_stage('0', {
   \ 'id'         : 5,
+  \ 'button'     : 0,
   \ 'gen_max'    : 5,
   \ 'gen_length' : 5,
   \ 'stage'      : [
@@ -272,6 +306,7 @@ call boxboy#add_stage('0', {
 
 call boxboy#add_stage('0', {
   \ 'id'         : 6,
+  \ 'button'     : 0,
   \ 'gen_max'    : 4,
   \ 'gen_length' : 4,
   \ 'stage'      : [
@@ -282,6 +317,19 @@ call boxboy#add_stage('0', {
   \   '=           =           =',
   \   '=  S        =           =',
   \   '=========================',
+  \ ],
+  \ })
+
+call boxboy#add_stage('0', {
+  \ 'id'         : 0,
+  \ 'button'     : 1,
+  \ 'gen_max'    : 10,
+  \ 'gen_length' : 0,
+  \ 'stage'      : [
+  \   '=====================',
+  \   '=         |         =',
+  \   '= S   _   |      G  =',
+  \   '=====================',
   \ ],
   \ })
 
