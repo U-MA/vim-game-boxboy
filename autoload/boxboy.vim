@@ -401,7 +401,7 @@ function! s:change_to_genblocks() abort
 endfunction
 
 function! s:set_gen_block_on(dir) abort
-  execute 'normal! ' . a:dir . 'r' . '*'
+  execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
   let s:gen_length += 1
 endfunction
 
