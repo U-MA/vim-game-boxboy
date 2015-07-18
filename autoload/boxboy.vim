@@ -59,16 +59,17 @@ let s:users_guide = [
 let s:save_ch = []
 
 function! s:set_hilight_ch() abort
+  let l:arrows = {'h' : '<', 'j' : 'v', 'k' : '^', 'l' : '>'}
   for l:dir in ['h', 'j', 'k', 'l']
     let l:ch = s:getchar_on(l:dir)
     call add(s:save_ch, l:ch)
     if l:dir =~# '[hkl]'
       if !s:is_block(l:ch) && l:ch !=# s:player_ch && l:ch !=# 'G'
-        call s:setchar_on(l:dir, '.')
+        call s:setchar_on(l:dir, l:arrows[l:dir])
       endif
     else
       if s:getchar_on_cursor() !=# s:player_ch && l:ch !=# '#' && l:ch !=# s:player_ch && l:ch !=# 'G'
-        call s:setchar_on(l:dir, '.')
+        call s:setchar_on(l:dir, l:arrows[l:dir])
       endif
     endif
   endfor
@@ -98,6 +99,7 @@ endfunction
 function! s:ready_to_switch(mode) abort
   if a:mode ==# 'move'
     call s:reset_hilight_ch()
+    call s:change_to_genblocks()
     execute 'normal! gg0'
     call search(s:player_ch, 'w', s:stage_bottom_line)
     call s:genblocks_fall_if_possible()
@@ -389,8 +391,17 @@ endfunction
 let s:gen_length = 0
 let s:stack = s:NewStack()
 
+function! s:change_to_genblocks() abort
+  let l:pos = getpos('.')
+  execute 'normal! gg0'
+  while search('*', 'W', s:stage_bottom_line)
+    execute 'normal! r' . s:gen_block_ch
+  endwhile
+  call setpos('.', l:pos)
+endfunction
+
 function! s:set_gen_block_on(dir) abort
-  execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
+  execute 'normal! ' . a:dir . 'r' . '*'
   let s:gen_length += 1
 endfunction
 
@@ -689,12 +700,18 @@ function! boxboy#main() abort
     autocmd CursorMoved <buffer> call <SID>check_stage()
   augroup END
 
-  syntax match boxboy_dir /\./ contained
+  syntax match boxboy_dir /[<|v|^|>]/ contained
   syntax match boxboy_player /A/ contained
-  syntax region boxboy_stage start=/\%^/ end=/^$/ contains=boxboy_dir,boxboy_player
+  syntax match boxboy_block /=/ contained
+  syntax match boxboy_genblock /#/ contained
+  syntax region boxboy_stage start=/\%^/ end=/^$/ contains=boxboy_dir,boxboy_player,boxboy_block,boxboy_genblock
   highlight boxboy_dir_hi guibg=blue ctermbg=blue
   highlight boxboy_player_hi guifg=cyan ctermfg=cyan
+  highlight boxboy_block_hi guifg=gray guibg=lightgray ctermfg=gray ctermbg=lightgray
+  highlight boxboy_genblock_hi guifg=gray guibg=darkgray ctermfg=gray ctermbg=darkgray
   highlight default link boxboy_dir boxboy_dir_hi
+  highlight default link boxboy_block boxboy_block_hi
+  highlight default link boxboy_genblock boxboy_genblock_hi
   "highlight default link boxboy_player boxboy_player_hi
 
   call s:setup_all()
