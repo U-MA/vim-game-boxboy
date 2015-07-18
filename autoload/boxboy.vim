@@ -199,6 +199,14 @@ function! s:NewStack() abort
 endfunction
 " }}}
 
+function! s:is_on_ground() abort
+  let l:pos = getpos('.')
+  execute 'normal! gg0'
+  call search(s:player_ch, 'W', s:stage_bottom_line)
+  let l:ret = s:getchar_on('j')
+  call setpos('.', l:pos)
+  return s:is_block(l:ret)
+endfunction
 
 function! s:set_gen_length_max(len) abort
   let s:gen_length_max = a:len
@@ -431,7 +439,11 @@ function! s:resume_genblock() abort
         call s:stack.pop()
       else
         execute 'normal! r '
-        call s:lift_down_player_and_gen_blocks()
+        if !s:is_on_ground()
+          call s:lift_down_player_and_gen_blocks()
+        else
+          execute 'normal! r ' . s:reverse_dir(s:stack.top())
+        endif
         call s:stack.pop()
       endif
       redraw
@@ -631,7 +643,8 @@ endfunction
 
 " Main {{{
 
-let s:default_stage_set_name = '0'
+"let s:default_stage_set_name = '0'
+let s:default_stage_set_name = 'test_play'
 let s:current_stage_no       = 0
 
 let s:stage_set = s:stages[s:default_stage_set_name]
