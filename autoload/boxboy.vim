@@ -454,7 +454,7 @@ endfunction
 
 function! s:hook_shot() abort
   let line = getline('.')
-  if s:previous_dir == 'l'
+  if s:previous_dir ==# 'l'
     if match(line[col('.')-1:], 'A\s*O') != -1
       execute 'normal! r '
       execute 'normal! tOr' . s:player_ch
@@ -553,7 +553,7 @@ function! s:disable_all_keys() abort
   call extend(keys, range(33, 48))
   call extend(keys, range(58, 126))
   for key in keys
-    if nr2char(key) == '|'
+    if nr2char(key) ==# '|'
       continue
     endif
 
