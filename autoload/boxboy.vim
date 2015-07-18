@@ -148,6 +148,55 @@ function! s:toggle_mode() abort
 
 " Utility {{{
 
+" Stack {{{
+" Stack size is 10
+let s:Stack = { 'data': [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ], 'head': -1 }
+function! s:Stack.push(a) abort
+  let self.head += 1
+  let self.data[self.head] = a:a
+endfunction
+
+function! s:Stack.pop() abort
+  try
+    let l:ret = self.top()
+  catch /^Stack.*/
+    echomsg 'error'
+  endtry
+
+  let self.head -= 1
+  return l:ret
+endfunction
+
+function! s:Stack.clear() abort
+  let self.head = -1
+endfunction
+
+function! s:Stack.empty() abort
+  return self.head == -1
+endfunction
+
+function! s:Stack.top() abort
+  if self.head == -1
+    throw 'Stack is empty'
+  endif
+  return self.data[self.head]
+endfunction
+
+function! s:Stack.print() abort
+  if self.empty()
+    return
+  endif
+  for l:i in range(self.head, 0, -1)
+    echo self.data[l:i]
+  endfor
+endfunction
+
+function! s:NewStack() abort
+  return copy(s:Stack)
+endfunction
+" }}}
+
+
 function! s:set_gen_length_max(len) abort
   let s:gen_length_max = a:len
 endfunction
