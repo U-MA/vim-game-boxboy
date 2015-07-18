@@ -318,10 +318,14 @@ function! s:check_stage() abort
   endif
 endfunction
 
+function! s:reverse_dir(dir) abort
+  let l:reverse_dir = {'h' : 'l', 'j' : 'k', 'k' : 'j', 'l' : 'h'}
+  return l:reverse_dir[a:dir]
+endfunction
+
 function! s:setchar_on(dir, ch) abort
-  let s:reverse_dir = {'h' : 'l', 'j' : 'k', 'k' : 'j', 'l' : 'h'}
   execute 'normal! ' . a:dir . 'r' . a:ch
-  execute 'normal! ' . s:reverse_dir[a:dir]
+  execute 'normal! ' . s:reverse_dir(a:dir)
 endfunction
 
 function! s:getchar_on_cursor() abort
