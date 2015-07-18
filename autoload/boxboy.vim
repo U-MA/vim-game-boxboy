@@ -106,6 +106,7 @@ function! s:ready_to_switch(mode) abort
     call s:erase_blocks()
     call s:down()
     call s:set_hilight_ch()
+    call s:stack.clear()
   endif
 endfunction
 
@@ -177,7 +178,7 @@ endfunction
 
 function! s:Stack.top() abort
   if self.head == -1
-    throw 'Stack is empty'
+    throw 'top(): Stack is empty'
   endif
   return self.data[self.head]
 endfunction
@@ -234,6 +235,16 @@ function! s:lift_up_player_and_gen_blocks() abort
   execute 'normal! gg0'
   while search('[A#]', 'W', s:stage_bottom_line)
     call s:move_ch_on_cursor_to('k')
+  endwhile
+  call setpos('.', l:pos)
+endfunction
+
+function! s:lift_down_player_and_gen_blocks() abort
+  let l:pos = getpos('.')
+  execute 'normal! ' . s:stage_bottom_line . 'G'
+  echo s:stage_bottom_line
+  while search('[A#]', 'bW')
+    call s:move_ch_on_cursor_to('j')
   endwhile
   call setpos('.', l:pos)
 endfunction
@@ -376,6 +387,7 @@ endfunction
 " Block generater{{{
 
 let s:gen_length = 0
+let s:stack = s:NewStack()
 
 function! s:set_gen_block_on(dir) abort
   execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
@@ -388,14 +400,35 @@ function! s:generate_block(dir) abort
       let s:previous_dir = a:dir
     endif
     call s:set_gen_block_on(a:dir)
+    call s:stack.push(a:dir)
   else
     if a:dir ==# 'j' && s:getchar_on_cursor() !=# s:player_ch
       if s:can_lift() && s:getchar_on('j') !~# '[A#]'
         call s:lift_up_player_and_gen_blocks()
         call s:set_gen_block_on('')
+        call s:stack.push(a:dir)
       endif
     endif
   endif
+endfunction
+
+function! s:resume_genblock() abort
+  try
+    if !s:stack.empty()
+      if s:stack.top() =~# '[hkl]'
+        execute 'normal! r ' . s:reverse_dir(s:stack.top())
+        call s:stack.pop()
+      else
+        execute 'normal! r '
+        call s:lift_down_player_and_gen_blocks()
+        call s:stack.pop()
+      endif
+      redraw
+      let s:gen_length -= 1
+    endif
+  catch /^Stack.*/
+    echomsg 'Stack is empty'
+  endtry
 endfunction
 
 " }}}
@@ -478,20 +511,24 @@ endfunction
 
 function! s:key_events(key) abort
   if s:mode " block generate
-    if s:gen_length >= s:gen_length_max
-      return
-    endif
-
     call s:reset_hilight_ch()
-    if a:key ==# 'h'
-      call s:generate_block('h')
-    elseif a:key ==# 'j'
-      call s:generate_block('j')
-    elseif a:key ==# 'k'
-      call s:generate_block('k')
-    elseif a:key ==# 'l'
-      call s:generate_block('l')
-    endif
+    try
+      if !s:stack.empty() && s:reverse_dir(a:key) ==# s:stack.top()
+        call s:resume_genblock()
+      elseif s:gen_length >= s:gen_length_max
+        return
+      elseif a:key ==# 'h'
+        call s:generate_block('h')
+      elseif a:key ==# 'j'
+        call s:generate_block('j')
+      elseif a:key ==# 'k'
+        call s:generate_block('k')
+      elseif a:key ==# 'l'
+        call s:generate_block('l')
+      endif
+    catch /^Stack.*/
+      echomsg 'key_events:stack is empty'
+    endtry
     if s:gen_length < s:gen_length_max
       call s:set_hilight_ch()
     endif
