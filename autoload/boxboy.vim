@@ -24,28 +24,12 @@ endfunction
 
 " Script {{{
 
-"let s:users_guide = [
-"  \ '[ 操作説明 ]',
-"  \ 'h: 左に動く / ブロックを左に生成',
-"  \ 'j:  / ブロックを下に生成',
-"  \ 'k:  / ブロックを上に生成',
-"  \ 'l: 右に動く / ブロックを右に生成',
-"  \ 'f: 進行方向のOの直前まで動く /',
-"  \ 't: モード切り替え',
-"  \ 'x: ブロックを消去 /',
-"  \ '<space>: 進行方向のブロックを１段登る /',
-"  \ 'Q: ゲームをやめる',
-"  \ ]
-
 let s:users_guide = [
   \ '[ user guide ]',
   \ '',
   \ '   h   : Move left',
   \ '   l   : Move right',
   \ '<space>: Jump',
-  \ '   f   : Warp to O',
-  \ '   t   : toggle user mode',
-  \ '   x   : Erase all generated blocks',
   \ '',
   \ '   r   : Restart',
   \ '   Q   : Quit game'
