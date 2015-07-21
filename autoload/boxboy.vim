@@ -70,10 +70,10 @@ function! s:help_jump(ver) abort
   redraw
   sleep 1
   highlight boxboy_space_key_hi ctermfg=darkgray
-  redraw
   sleep 300m
   call s:key_events(' ')
   highlight boxboy_space_key_hi ctermfg=NONE
+
   redraw
   sleep 1
   highlight boxboy_space_key_hi ctermfg=darkgray
@@ -749,7 +749,7 @@ function! boxboy#main() abort
   nnoremap <silent><buffer><nowait> r       :<C-u>call <SID>setup_all()<CR>
   nnoremap <silent><buffer><nowait> Q       :<C-u>bd!<CR>
 
-  "nnoremap <silent><buffer><nowait> v       :<C-u>call <SID>create_help_window('jump', [2, 4])<CR>
+  nnoremap <silent><buffer><nowait> v       :<C-u>call <SID>create_help_window('jump', [2, 4])<CR>
 
   augroup BoxBoy
     autocmd!
