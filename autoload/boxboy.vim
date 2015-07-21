@@ -37,6 +37,56 @@ let s:users_guide = [
 
 " }}}}
 
+" Help window {{{
+
+" a:pos == [ row, col ]
+function! s:create_help_window(str, pos) abort
+  if a:str ==# 'jump'
+    call s:help_jump(a:pos)
+  endif
+endfunction
+
+function! s:help_jump(ver) abort
+  let l:window = [
+    \  '+-----------+',
+    \  '|           |',
+    \  '|     A     |',
+    \  '|===========|',
+    \  '|  [space]  |',
+    \  '+-----------+',
+    \]
+
+
+  let l:pos = getpos('.')
+  execute 'normal! r*'
+
+  call cursor(a:ver)
+  for l:line in l:window
+    call s:replace(l:line)
+    execute 'normal! j'
+  endfor
+  call search('A', 'bw')
+
+  redraw
+  sleep 1
+  highlight boxboy_space_key_hi ctermfg=darkgray
+  redraw
+  sleep 300m
+  call s:key_events(' ')
+  highlight boxboy_space_key_hi ctermfg=NONE
+  redraw
+  sleep 1
+  highlight boxboy_space_key_hi ctermfg=darkgray
+  sleep 300m
+  call s:key_events(' ')
+  highlight boxboy_space_key_hi ctermfg=NONE
+
+  call setpos('.', l:pos)
+  execute 'normal! r' . s:player_ch
+endfunction
+
+" }}}
+
 " Hilight {{{
 
 " ['h', 'j', 'k', 'l']
@@ -182,6 +232,13 @@ function! s:NewStack() abort
   return copy(s:Stack)
 endfunction
 " }}}
+
+function! s:replace(str) abort
+  let l:pos = getpos('.')
+  execute 'normal! ' . len(a:str) . 'x'
+  execute 'normal! i' . a:str
+  call cursor(l:pos[1], l:pos[2])
+endfunction
 
 function! s:is_on_ground() abort
   let l:pos = getpos('.')
@@ -692,23 +749,28 @@ function! boxboy#main() abort
   nnoremap <silent><buffer><nowait> r       :<C-u>call <SID>setup_all()<CR>
   nnoremap <silent><buffer><nowait> Q       :<C-u>bd!<CR>
 
+  "nnoremap <silent><buffer><nowait> v       :<C-u>call <SID>create_help_window('jump', [2, 4])<CR>
+
   augroup BoxBoy
     autocmd!
     autocmd CursorMoved <buffer> call <SID>check_stage()
   augroup END
 
-  syntax match boxboy_dir /[<|v|^|>]/ contained
+  syntax match boxboy_dir /[<v^>]/ contained
   syntax match boxboy_player /A/ contained
   syntax match boxboy_block /=/ contained
   syntax match boxboy_genblock /#/ contained
-  syntax region boxboy_stage start=/\%^/ end=/^$/ contains=boxboy_dir,boxboy_player,boxboy_block,boxboy_genblock
+  syntax match boxboy_space_key /[space]/ contained
+  syntax region boxboy_stage start=/\%^/ end=/^$/ contains=boxboy_dir,boxboy_player,boxboy_block,boxboy_genblock,boxboy_space_key
   highlight boxboy_dir_hi guibg=blue ctermbg=blue
   highlight boxboy_player_hi guifg=cyan ctermfg=cyan
   highlight boxboy_block_hi guifg=gray guibg=lightgray ctermfg=gray ctermbg=lightgray
   highlight boxboy_genblock_hi guifg=gray guibg=darkgray ctermfg=gray ctermbg=darkgray
+  highlight boxboy_space_key_hi ctermfg=NONE
   highlight default link boxboy_dir boxboy_dir_hi
   highlight default link boxboy_block boxboy_block_hi
   highlight default link boxboy_genblock boxboy_genblock_hi
+  highlight default link boxboy_space_key boxboy_space_key_hi
   "highlight default link boxboy_player boxboy_player_hi
 
   call s:setup_all()
