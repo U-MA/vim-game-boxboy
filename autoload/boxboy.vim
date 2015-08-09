@@ -574,6 +574,10 @@ function! s:erase_blocks() abort
 endfunction
 
 function! s:key_events(key) abort
+  if a:key ==# 't'
+    call s:toggle_mode()
+    return
+  endif
   if s:mode " block generate
     call s:reset_hilight_ch()
     try
@@ -733,49 +737,58 @@ function! s:setup_all() abort
   call s:set_player_to_cursor()
 endfunction
 
+function! s:update() abort
+  let l:ch = getchar(0)
+  if (l:ch != 0)
+    if (nr2char(l:ch) ==# 'Q')
+      return 0
+    endif
+    call s:key_events(nr2char(l:ch))
+  endif
+  return 1
+endfunction
+
+function! s:close_window() abort
+  bd!
+endfunction
+
 function! boxboy#main() abort
-  tabnew boxboy
+  tabnew BoxBoy
 
-  call s:disable_all_keys()
-  nnoremap <silent><buffer><nowait> h       :<C-u>call <SID>key_events('h')<CR>
-  nnoremap <silent><buffer><nowait> j       :<C-u>call <SID>key_events('j')<CR>
-  nnoremap <silent><buffer><nowait> k       :<C-u>call <SID>key_events('k')<CR>
-  nnoremap <silent><buffer><nowait> l       :<C-u>call <SID>key_events('l')<CR>
-  nnoremap <silent><buffer><nowait> <space> :<C-u>call <SID>key_events(' ')<CR>
-  nnoremap <silent><buffer><nowait> f       :<C-u>call <SID>key_events('f')<CR>
-  nnoremap <silent><buffer><nowait> x       :<C-u>call <SID>key_events('x')<CR>
-  nnoremap <silent><buffer><nowait> t       :<C-u>call <SID>toggle_mode()<CR>
-  nnoremap <silent><buffer><nowait> <esc>   :<C-u>call <SID>toggle_to('move')<CR>
-  nnoremap <silent><buffer><nowait> r       :<C-u>call <SID>setup_all()<CR>
-  nnoremap <silent><buffer><nowait> Q       :<C-u>bd!<CR>
-
-  nnoremap <silent><buffer><nowait> v       :<C-u>call <SID>create_help_window('jump', [2, 4])<CR>
-
-  augroup BoxBoy
+  augroup BoxBoy " {{{
     autocmd!
     autocmd CursorMoved <buffer> call <SID>check_stage()
   augroup END
+  " }}}
 
-  syntax match boxboy_dir /[<v^>]/ contained
-  syntax match boxboy_player /A/ contained
-  syntax match boxboy_block /=/ contained
+  " syntax {{{
+  syntax match boxboy_dir /[<^v>]/ contained
+  syntax match boxboy_player /A/   contained
+  syntax match boxboy_block /=/    contained
   syntax match boxboy_genblock /#/ contained
   syntax match boxboy_space_key /[space]/ contained
+
   syntax region boxboy_stage start=/\%^/ end=/^$/ contains=boxboy_dir,boxboy_player,boxboy_block,boxboy_genblock,boxboy_space_key
+
   highlight boxboy_dir_hi guibg=blue ctermbg=blue
-  highlight boxboy_player_hi guifg=cyan ctermfg=cyan
+  highlight boxboy_player_hi guifg=cyan ctermbg=cyan
   highlight boxboy_block_hi guifg=gray guibg=lightgray ctermfg=gray ctermbg=lightgray
   highlight boxboy_genblock_hi guifg=gray guibg=darkgray ctermfg=gray ctermbg=darkgray
   highlight boxboy_space_key_hi ctermfg=NONE
+
   highlight default link boxboy_dir boxboy_dir_hi
   highlight default link boxboy_block boxboy_block_hi
   highlight default link boxboy_genblock boxboy_genblock_hi
   highlight default link boxboy_space_key boxboy_space_key_hi
-  "highlight default link boxboy_player boxboy_player_hi
+  highlight default link boxboy_player boxboy_player_hi
+  " }}}
 
   call s:setup_all()
-
   redraw
+  while s:update()
+    redraw
+  endwhile
+  call s:close_window()
 endfunction
 
 " }}}
