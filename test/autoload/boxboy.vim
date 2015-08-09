@@ -42,6 +42,14 @@ let s:stage_existing_block = [
   \ ]
 
 
+function! s:owl_begin() abort
+  call s:create_tab()
+endfunction
+
+function! s:owl_end() abort
+  call s:close_tab()
+endfunction
+
 " Tests
 
 " move_cursor_to_start() {{{
@@ -203,6 +211,30 @@ function! s:test_generate_block_func_dont_generate_block_on_goal()
   OwlCheck !s:key_events('l')
   OwlCheck s:search_goal()
   call s:close_tab()
+endfunction
+
+" }}}
+
+" StageTest {{{
+
+function! s:test_not_stage_clear_when_G_exist_in_stage()
+  call s:add_lines([
+    \ '======',
+    \ '=  G =',
+    \ '======',
+    \])
+
+  OwlCheck !s:is_clear()
+endfunction
+
+function! s:test_cstage_clear_when_G_dont_exist_in_stage()
+ call s:add_lines([
+   \ '======',
+   \ '=    =',
+   \ '======',
+   \])
+
+ OwlCheck s:is_clear()
 endfunction
 
 " }}}

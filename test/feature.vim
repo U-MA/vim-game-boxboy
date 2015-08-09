@@ -14,40 +14,79 @@ function! s:close_tab() abort
 endfunction
 " }}}
 
-function! s:owl_begin() abort
-  call s:create_tab()
-endfunction
+" Adding room 'testing' {{{
 
-function! s:owl_end() abort
+call boxboy#add_stage('testing', {
+  \ 'id'      : 0,
+  \ 'gen_max' : 0,
+  \ 'gen_length' : 0,
+  \ 'stage'   : [
+  \   '======',
+  \   '= S G=',
+  \   '======',
+  \ ]
+  \ })
+
+call boxboy#add_stage('testing', {
+  \ 'id'      : 1,
+  \ 'gen_max' : 0,
+  \ 'gen_length' : 0,
+  \ 'stage'   : [
+  \   '====',
+  \   '=SG=',
+  \   '====',
+  \ ]
+  \ })
+
+" }}}
+
+function! s:test_check_player_initial_position()
+  call s:create_tab()
+  OwlCheck !s:go_to_room('testing')
+  OwlCheck col('.') == 3
   call s:close_tab()
 endfunction
 
-" Move {{{
-
-function! s:test_move_left_to_press_h()
-  call s:add_lines([
-    \ '=========',
-    \ '=   A   =',
-    \ '=========',
-    \])
-
-  call search('A', 'w')
+function! s:test_player_move_right()
+  call s:create_tab()
+  OwlCheck !s:go_to_room('testing')
   let l:col = col('.')
-  execute 'normal h'
-  OwlCheck col('.') == l:col-1
-endfunction
-
-function! s:test_move_right_to_press_l()
-  call s:add_lines([
-    \ '=========',
-    \ '=   A   =',
-    \ '=========',
-    \])
-
-  call search('A', 'w')
-  let l:col = col('.')
-  execute 'normal l'
+  OwlCheck !s:key_events('l')
   OwlCheck col('.') == l:col+1
+  call s:close_tab()
 endfunction
 
-" }}}
+function! s:test_player_move_left()
+  call s:create_tab()
+  OwlCheck !s:go_to_room('testing')
+  let l:col = col('.')
+  OwlCheck !s:key_events('h')
+  OwlCheck col('.') == l:col-1
+  call s:close_tab()
+endfunction
+
+function! s:test_setup_initial_stage()
+  call s:create_tab()
+  OwlCheck !s:go_to_room('testing')
+  OwlCheck s:get_stage_id() == 0
+  call s:close_tab()
+endfunction
+
+function! s:test_player_do_clear()
+  call s:create_tab()
+  OwlCheck !s:go_to_room('testing')
+  OwlCheck !s:key_events('l')
+  OwlCheck !s:key_events('l')
+  OwlCheck s:is_clear()
+  call s:close_tab()
+endfunction
+
+function! s:test_go_to_next_stage_when_player_do_clear()
+  call s:create_tab()
+  OwlCheck !s:go_to_room('testing')
+  OwlCheck !s:go_to_next_stage()
+  OwlCheck s:get_stage_id() == 1
+  call s:close_tab()
+endfunction
+
+" vim: foldmethod=marker

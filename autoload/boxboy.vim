@@ -649,6 +649,37 @@ for s:stage_set_file in s:stage_set_files
   execute 'source ' . s:stage_set_file
 endfor
 
+function! s:is_clear() abort
+  let l:pos = getpos('.')
+  return (l:pos[0] == s:goal_pos[0]) && (l:pos[1] == s:goal_pos[1])
+endfunction
+
+
+function! s:go_to_room(room_name) abort
+  let s:stage_set = s:stages[a:room_name]
+  let s:current_stage_no = 0
+  let s:stage = s:stage_set[s:current_stage_no]
+  call s:draw_stage_and_information()
+  execute 'normal! gg0'
+  call search('G', 'w', s:stage_bottom_line)
+  let s:goal_pos = getpos('.')
+  call s:move_cursor_to_start()
+  call s:set_player_to_cursor()
+endfunction
+
+function! s:go_to_next_stage() abort
+  %delete
+  let s:current_stage_no += 1
+  let s:stage = s:stage_set[s:current_stage_no]
+  call s:draw_stage_and_information()
+  call s:move_cursor_to_start()
+  call s:set_player_to_cursor()
+endfunction
+
+function! s:get_stage_id() abort
+  return s:current_stage_no
+endfunction
+
 " }}}
 
 " Disable keys {{{
@@ -733,6 +764,9 @@ function! s:setup_all() abort
   call s:init_player_information()
   call s:setup_stage()
   call s:save_button_pos()
+  execute 'normal! gg0'
+  call search('G', 'w')
+  let s:goal_pos = getpos('.')
   call s:move_cursor_to_start()
   call s:set_player_to_cursor()
 endfunction
@@ -744,6 +778,10 @@ function! s:update() abort
       return 0
     endif
     call s:key_events(nr2char(l:ch))
+  endif
+
+  if (s:is_clear())
+    call s:go_to_next_stage()
   endif
   return 1
 endfunction
@@ -767,7 +805,6 @@ function! boxboy#main() abort
 
   " syntax {{{
   syntax match boxboy_dir /[<^v>]/ contained
-  syntax match boxboy_player /A/   contained
   syntax match boxboy_block /=/    contained
   syntax match boxboy_genblock /#/ contained
   syntax match boxboy_space_key /[space]/ contained
@@ -775,7 +812,6 @@ function! boxboy#main() abort
   syntax region boxboy_stage start=/\%^/ end=/^$/ contains=boxboy_dir,boxboy_player,boxboy_block,boxboy_genblock,boxboy_space_key
 
   highlight boxboy_dir_hi guibg=blue ctermbg=blue
-  highlight boxboy_player_hi guifg=cyan ctermbg=cyan
   highlight boxboy_block_hi guifg=gray guibg=lightgray ctermfg=gray ctermbg=lightgray
   highlight boxboy_genblock_hi guifg=gray guibg=darkgray ctermfg=gray ctermbg=darkgray
   highlight boxboy_space_key_hi ctermfg=NONE
@@ -784,7 +820,6 @@ function! boxboy#main() abort
   highlight default link boxboy_block boxboy_block_hi
   highlight default link boxboy_genblock boxboy_genblock_hi
   highlight default link boxboy_space_key boxboy_space_key_hi
-  highlight default link boxboy_player boxboy_player_hi
   " }}}
 
   call s:setup_all()
