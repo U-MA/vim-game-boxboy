@@ -748,12 +748,16 @@ function! s:update() abort
   return 1
 endfunction
 
-function! s:close_window() abort
+function! s:open_gametab() abort
+  tabnew BoxBoy
+endfunction
+
+function! s:close_gametab() abort
   bd!
 endfunction
 
 function! boxboy#main() abort
-  tabnew BoxBoy
+  call s:open_gametab()
 
   augroup BoxBoy " {{{
     autocmd!
