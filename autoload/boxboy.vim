@@ -792,7 +792,7 @@ function! boxboy#main() abort
   while s:update()
     redraw
   endwhile
-  call s:close_window()
+  call s:close_gametab()
 endfunction
 
 " }}}
