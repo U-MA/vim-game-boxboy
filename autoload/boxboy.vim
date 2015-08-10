@@ -29,7 +29,25 @@ endfunction
 " }}}
 
 
+" Script {{{
+
+" This guide should move another file.
+let s:users_guide = [
+  \ '[ user guide ]',
+  \ '',
+  \ '   h   : Move left',
+  \ '   l   : Move right',
+  \ '<space>: Jump',
+  \ '',
+  \ '   r   : Restart',
+  \ '   Q   : Quit game'
+  \ ]
+
+" }}}}
+
+
 " Constant Values {{{
+
 let s:PLAYER_CH = 'A'
 
 " Blocks {{{
@@ -38,6 +56,7 @@ let s:PLAYER_CH = 'A'
 " }}}
 
 " }}}
+
 
 "Player information {{{
 
@@ -51,20 +70,160 @@ let s:player_pos = [0, 0]
 
 " }}}
 
-" Script {{{
+" Mode {{{
 
-let s:users_guide = [
-  \ '[ user guide ]',
-  \ '',
-  \ '   h   : Move left',
-  \ '   l   : Move right',
-  \ '<space>: Jump',
-  \ '',
-  \ '   r   : Restart',
-  \ '   Q   : Quit game'
-  \ ]
+function! s:get_mode() abort
+  return s:mode
+endfunction
 
-" }}}}
+" a:mode == 'move' or 'gen'
+function! s:ready_to_switch(mode) abort
+  if a:mode ==# 'move'
+    call s:reset_hilight_ch()
+    execute 'normal! gg0'
+    call search(s:PLAYER_CH, 'w', s:stage_bottom_line)
+    call s:genblocks_fall_if_possible()
+  else
+    let s:gen_length = 0
+    call s:erase_blocks()
+    call s:down()
+    call s:set_hilight_ch()
+    call s:stack.clear()
+  endif
+endfunction
+
+" a:mode == 'move' or 'gen'
+function! s:switch_to(mode) abort
+  if a:mode ==# 'move'
+    let s:mode = 0
+  else
+    let s:mode = 1
+  endif
+endfunction
+
+function! s:toggle_to(mode) abort
+  if a:mode ==# 'move'
+    call s:ready_to_switch('move')
+    call s:switch_to('move')
+    echo 'PLAYER MOVE MODE'
+  else
+    call s:ready_to_switch('gen')
+    call s:switch_to('gen')
+    echo 'BLOCK GENERATE MODE'
+  endif
+endfunction
+
+function! s:toggle_mode() abort
+  if s:mode
+    "highlight boxboy_player_hi ctermfg=NONE
+    call s:toggle_to('move')
+  else
+    "highlight boxboy_player_hi ctermfg=magenta
+    call s:toggle_to('gen')
+  endif
+  endfunction
+" }}}
+
+" Block generater{{{
+
+" Stack {{{
+" Stack size is 10
+let s:Stack = { 'data': [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ], 'head': -1 }
+function! s:Stack.push(a) abort
+  let self.head += 1
+  let self.data[self.head] = a:a
+endfunction
+
+function! s:Stack.pop() abort
+  try
+    let l:ret = self.top()
+  catch /^Stack.*/
+    echomsg 'error'
+  endtry
+
+  let self.head -= 1
+  return l:ret
+endfunction
+
+function! s:Stack.clear() abort
+  let self.head = -1
+endfunction
+
+function! s:Stack.empty() abort
+  return self.head == -1
+endfunction
+
+function! s:Stack.top() abort
+  if self.head == -1
+    throw 'top(): Stack is empty'
+  endif
+  return self.data[self.head]
+endfunction
+
+function! s:Stack.print() abort
+  if self.empty()
+    return
+  endif
+  for l:i in range(self.head, 0, -1)
+    echo self.data[l:i]
+  endfor
+endfunction
+
+function! s:NewStack() abort
+  return copy(s:Stack)
+endfunction
+" }}}
+
+let s:gen_length = 0
+let s:stack = s:NewStack()
+
+function! s:set_gen_block_on(dir) abort
+  execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
+  let s:gen_length += 1
+endfunction
+
+function! s:generate_block(dir) abort
+  if s:is_movable(a:dir) && s:getchar_on(a:dir) !=# 'G'
+    if s:gen_length == 0 && a:dir =~# '[hl]'
+      let s:previous_dir = a:dir
+    endif
+    call s:set_gen_block_on(a:dir)
+    call s:stack.push(a:dir)
+  else
+    if a:dir ==# 'j' && s:getchar_on_cursor() !=# s:PLAYER_CH
+      if s:can_lift() && s:getchar_on('j') !~# '[A#]'
+        call s:lift_up_player_and_gen_blocks()
+        call s:set_gen_block_on('')
+        call s:stack.push(a:dir)
+      endif
+    endif
+  endif
+endfunction
+
+function! s:resume_genblock() abort
+  try
+    if !s:stack.empty()
+      if s:stack.top() =~# '[hkl]'
+        execute 'normal! r ' . s:reverse_dir(s:stack.top())
+        call s:stack.pop()
+      else
+        execute 'normal! r '
+        if !s:is_on_ground()
+          call s:lift_down_player_and_gen_blocks()
+        else
+          execute 'normal! r ' . s:reverse_dir(s:stack.top())
+        endif
+        call s:stack.pop()
+      endif
+      redraw
+      let s:gen_length -= 1
+    endif
+  catch /^Stack.*/
+    echomsg 'Stack is empty'
+  endtry
+endfunction
+
+" }}}
 
 " class Player {{{
 
@@ -84,6 +243,7 @@ function! s:Player.key_event(key) abort
 endfunction
 
 " }}}
+
 
 " Help window {{{
 
@@ -181,109 +341,7 @@ endfunction
 
 " }}}
 
-" Mode {{{
-
-function! s:get_mode() abort
-  return s:mode
-endfunction
-
-" a:mode == 'move' or 'gen'
-function! s:ready_to_switch(mode) abort
-  if a:mode ==# 'move'
-    call s:reset_hilight_ch()
-    execute 'normal! gg0'
-    call search(s:PLAYER_CH, 'w', s:stage_bottom_line)
-    call s:genblocks_fall_if_possible()
-  else
-    let s:gen_length = 0
-    call s:erase_blocks()
-    call s:down()
-    call s:set_hilight_ch()
-    call s:stack.clear()
-  endif
-endfunction
-
-" a:mode == 'move' or 'gen'
-function! s:switch_to(mode) abort
-  if a:mode ==# 'move'
-    let s:mode = 0
-  else
-    let s:mode = 1
-  endif
-endfunction
-
-function! s:toggle_to(mode) abort
-  if a:mode ==# 'move'
-    call s:ready_to_switch('move')
-    call s:switch_to('move')
-    echo 'PLAYER MOVE MODE'
-  else
-    call s:ready_to_switch('gen')
-    call s:switch_to('gen')
-    echo 'BLOCK GENERATE MODE'
-  endif
-endfunction
-
-function! s:toggle_mode() abort
-  if s:mode
-    "highlight boxboy_player_hi ctermfg=NONE
-    call s:toggle_to('move')
-  else
-    "highlight boxboy_player_hi ctermfg=magenta
-    call s:toggle_to('gen')
-  endif
-  endfunction
-" }}}
-
 " Utility {{{
-
-" Stack {{{
-" Stack size is 10
-let s:Stack = { 'data': [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ], 'head': -1 }
-function! s:Stack.push(a) abort
-  let self.head += 1
-  let self.data[self.head] = a:a
-endfunction
-
-function! s:Stack.pop() abort
-  try
-    let l:ret = self.top()
-  catch /^Stack.*/
-    echomsg 'error'
-  endtry
-
-  let self.head -= 1
-  return l:ret
-endfunction
-
-function! s:Stack.clear() abort
-  let self.head = -1
-endfunction
-
-function! s:Stack.empty() abort
-  return self.head == -1
-endfunction
-
-function! s:Stack.top() abort
-  if self.head == -1
-    throw 'top(): Stack is empty'
-  endif
-  return self.data[self.head]
-endfunction
-
-function! s:Stack.print() abort
-  if self.empty()
-    return
-  endif
-  for l:i in range(self.head, 0, -1)
-    echo self.data[l:i]
-  endfor
-endfunction
-
-function! s:NewStack() abort
-  return copy(s:Stack)
-endfunction
-" }}}
 
 function! s:replace(str) abort
   let l:pos = getpos('.')
@@ -426,199 +484,6 @@ endfunction
 
 " }}}
 
-" Block generater{{{
-
-let s:gen_length = 0
-let s:stack = s:NewStack()
-
-function! s:set_gen_block_on(dir) abort
-  execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
-  let s:gen_length += 1
-endfunction
-
-function! s:generate_block(dir) abort
-  if s:is_movable(a:dir) && s:getchar_on(a:dir) !=# 'G'
-    if s:gen_length == 0 && a:dir =~# '[hl]'
-      let s:previous_dir = a:dir
-    endif
-    call s:set_gen_block_on(a:dir)
-    call s:stack.push(a:dir)
-  else
-    if a:dir ==# 'j' && s:getchar_on_cursor() !=# s:PLAYER_CH
-      if s:can_lift() && s:getchar_on('j') !~# '[A#]'
-        call s:lift_up_player_and_gen_blocks()
-        call s:set_gen_block_on('')
-        call s:stack.push(a:dir)
-      endif
-    endif
-  endif
-endfunction
-
-function! s:resume_genblock() abort
-  try
-    if !s:stack.empty()
-      if s:stack.top() =~# '[hkl]'
-        execute 'normal! r ' . s:reverse_dir(s:stack.top())
-        call s:stack.pop()
-      else
-        execute 'normal! r '
-        if !s:is_on_ground()
-          call s:lift_down_player_and_gen_blocks()
-        else
-          execute 'normal! r ' . s:reverse_dir(s:stack.top())
-        endif
-        call s:stack.pop()
-      endif
-      redraw
-      let s:gen_length -= 1
-    endif
-  catch /^Stack.*/
-    echomsg 'Stack is empty'
-  endtry
-endfunction
-
-" }}}
-
-" Key event {{{
-
-function! s:right() abort
-  let s:previous_dir = 'l'
-  if s:is_movable('l')
-    execute 'normal! r lr' . s:PLAYER_CH
-    let s:player_pos[1] += 1
-  endif
-endfunction
-
-function! s:left() abort
-  let s:previous_dir = 'h'
-  if s:is_movable('h')
-    execute 'normal! r hr' . s:PLAYER_CH
-    let s:player_pos[1] -= 1
-  endif
-endfunction
-
-function! s:down() abort
-  if s:is_block(s:getchar_on('j'))
-    return
-  endif
-
-  while !s:is_block(s:getchar_on('j'))
-    sleep 250m
-    execute 'normal! r jr' . s:PLAYER_CH
-    let s:player_pos[0] += 1
-    redraw!
-  endwhile
-  sleep 150m
-endfunction
-
-function! s:jump() abort
-  if !s:is_block(s:getchar_on('j'))
-    return
-  endif
-
-  let jmp_count = 1
-  while jmp_count > 0
-    if s:is_movable('k')
-      execute 'normal! r kr' . s:PLAYER_CH
-      let s:player_pos[0] -= 1
-      let jmp_count -= 1
-    else
-      break
-    endif
-  endwhile
-  if s:previous_dir ==# 'l'
-    call s:right()
-  else
-    call s:left()
-  endif
-  redraw!
-  sleep 50m
-endfunction
-
-function! s:hook_shot() abort
-  let line = getline('.')
-  if s:previous_dir ==# 'l'
-    if match(line[col('.')-1:], 'A\s*O') != -1
-      execute 'normal! r '
-      execute 'normal! tOr' . s:PLAYER_CH
-      let s:player_pos[1] = col('.')
-    endif
-  else
-    if match(line[:col('.')-1], 'O\s*A') != -1
-      execute 'normal! r '
-      execute 'normal! TOr' . s:PLAYER_CH
-      let s:player_pos[1] = col('.')
-    endif
-  endif
-endfunction
-
-function! s:erase_blocks() abort
-  let tmp_pos = getpos('.')
-  execute 'normal! gg0'
-  if search('#', 'W')
-    silent %substitute/#/ /g
-  endif
-  call setpos('.', tmp_pos)
-endfunction
-
-function! s:key_events(key) abort
-  if a:key ==# 't'
-    call s:toggle_mode()
-    return
-  endif
-  if s:mode " block generate
-    call s:reset_hilight_ch()
-    try
-      if !s:stack.empty() && s:reverse_dir(a:key) ==# s:stack.top()
-        call s:resume_genblock()
-      elseif s:gen_length >= s:stage.get_gen_length_max()
-        return
-      elseif a:key ==# 'h'
-        call s:generate_block('h')
-      elseif a:key ==# 'j'
-        call s:generate_block('j')
-      elseif a:key ==# 'k'
-        call s:generate_block('k')
-      elseif a:key ==# 'l'
-        call s:generate_block('l')
-      endif
-    catch /^Stack.*/
-      echomsg 'key_events:stack is empty'
-    endtry
-    if s:gen_length < s:stage.get_gen_length_max()
-      call s:set_hilight_ch()
-    endif
-  else "player move
-    if a:key ==# 'l'
-      call s:right()
-      call s:down()
-    elseif a:key ==# 'h'
-      call s:left()
-      call s:down()
-    elseif a:key ==# ' '
-      call s:jump()
-      call s:down()
-
-      " for stop always jump
-      " But ugly code
-      " Hope beautiful code
-      let l:i = getchar(0)
-      while l:i
-        let l:i = getchar(0)
-      endwhile
-      call feedkeys(nr2char(l:i), 't')
-    elseif a:key ==# 'f'
-      call s:hook_shot()
-      call s:down()
-    elseif a:key ==# 'x'
-      call s:erase_blocks()
-      call s:down()
-    endif
-
-    call s:genblocks_fall_if_possible()
-  endif
-endfunction
-"}}}
 
 " Stages {{{
 
@@ -777,6 +642,147 @@ function! s:MovableObjectsManager.move() abort
 endfunction
 
 " }}}
+
+" Key event {{{
+
+function! s:right() abort
+  let s:previous_dir = 'l'
+  if s:is_movable('l')
+    execute 'normal! r lr' . s:PLAYER_CH
+    let s:player_pos[1] += 1
+  endif
+endfunction
+
+function! s:left() abort
+  let s:previous_dir = 'h'
+  if s:is_movable('h')
+    execute 'normal! r hr' . s:PLAYER_CH
+    let s:player_pos[1] -= 1
+  endif
+endfunction
+
+function! s:down() abort
+  if s:is_block(s:getchar_on('j'))
+    return
+  endif
+
+  while !s:is_block(s:getchar_on('j'))
+    sleep 250m
+    execute 'normal! r jr' . s:PLAYER_CH
+    let s:player_pos[0] += 1
+    redraw!
+  endwhile
+  sleep 150m
+endfunction
+
+function! s:jump() abort
+  if !s:is_block(s:getchar_on('j'))
+    return
+  endif
+
+  let jmp_count = 1
+  while jmp_count > 0
+    if s:is_movable('k')
+      execute 'normal! r kr' . s:PLAYER_CH
+      let s:player_pos[0] -= 1
+      let jmp_count -= 1
+    else
+      break
+    endif
+  endwhile
+  if s:previous_dir ==# 'l'
+    call s:right()
+  else
+    call s:left()
+  endif
+  redraw!
+  sleep 50m
+endfunction
+
+function! s:hook_shot() abort
+  let line = getline('.')
+  if s:previous_dir ==# 'l'
+    if match(line[col('.')-1:], 'A\s*O') != -1
+      execute 'normal! r '
+      execute 'normal! tOr' . s:PLAYER_CH
+      let s:player_pos[1] = col('.')
+    endif
+  else
+    if match(line[:col('.')-1], 'O\s*A') != -1
+      execute 'normal! r '
+      execute 'normal! TOr' . s:PLAYER_CH
+      let s:player_pos[1] = col('.')
+    endif
+  endif
+endfunction
+
+function! s:erase_blocks() abort
+  let tmp_pos = getpos('.')
+  execute 'normal! gg0'
+  if search('#', 'W')
+    silent %substitute/#/ /g
+  endif
+  call setpos('.', tmp_pos)
+endfunction
+
+function! s:key_events(key) abort
+  if a:key ==# 't'
+    call s:toggle_mode()
+    return
+  endif
+  if s:mode " block generate
+    call s:reset_hilight_ch()
+    try
+      if !s:stack.empty() && s:reverse_dir(a:key) ==# s:stack.top()
+        call s:resume_genblock()
+      elseif s:gen_length >= s:stage.get_gen_length_max()
+        return
+      elseif a:key ==# 'h'
+        call s:generate_block('h')
+      elseif a:key ==# 'j'
+        call s:generate_block('j')
+      elseif a:key ==# 'k'
+        call s:generate_block('k')
+      elseif a:key ==# 'l'
+        call s:generate_block('l')
+      endif
+    catch /^Stack.*/
+      echomsg 'key_events:stack is empty'
+    endtry
+    if s:gen_length < s:stage.get_gen_length_max()
+      call s:set_hilight_ch()
+    endif
+  else "player move
+    if a:key ==# 'l'
+      call s:right()
+      call s:down()
+    elseif a:key ==# 'h'
+      call s:left()
+      call s:down()
+    elseif a:key ==# ' '
+      call s:jump()
+      call s:down()
+
+      " for stop always jump
+      " But ugly code
+      " Hope beautiful code
+      let l:i = getchar(0)
+      while l:i
+        let l:i = getchar(0)
+      endwhile
+      call feedkeys(nr2char(l:i), 't')
+    elseif a:key ==# 'f'
+      call s:hook_shot()
+      call s:down()
+    elseif a:key ==# 'x'
+      call s:erase_blocks()
+      call s:down()
+    endif
+
+    call s:genblocks_fall_if_possible()
+  endif
+endfunction
+"}}}
 
 " Main {{{
 
