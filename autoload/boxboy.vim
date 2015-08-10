@@ -79,12 +79,25 @@ call s:HelpWindowManager.add_window('jump', {
   \ 'window' : [
   \   '+-----------+',
   \   '|           |',
-  \   '|           |',
+  \   '|     A     |',
   \   '|===========|',
   \   '|  [space]  |',
   \   '+-----------+',
   \ ],
   \ 'script' : '  ',
+  \})
+
+call s:HelpWindowManager.add_window('move_right', {
+  \ 'name'   : 'move_right',
+  \ 'window' : [
+  \   '+-----------+',
+  \   '|           |',
+  \   '|     A     |',
+  \   '|===========|',
+  \   '|     l     |',
+  \   '+-----------+',
+  \ ],
+  \ 'script' : 'll',
   \})
 
 "}}}
