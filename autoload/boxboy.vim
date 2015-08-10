@@ -50,6 +50,7 @@ let s:blocks = [ '=', '#', 'O' ]
 " Global values {{{
 
   let s:scripts = {}
+  let s:stage_bottom_line = 0
 
 " }}}
 
@@ -64,7 +65,7 @@ function! s:ready_to_switch(mode) abort
     call search(s:PLAYER_CH, 'w', s:stage_bottom_line)
     call s:genblocks_fall_if_possible()
   else
-    let s:gen_length = 0
+    call s:player.init_block()
     call s:erase_blocks()
     call s:down()
     call s:set_hilight_ch()
@@ -95,10 +96,10 @@ endfunction
 
 function! s:toggle_mode() abort
   if s:player.mode
-    "highlight boxboy_player_hi ctermfg=NONE
+    highlight boxboy_player_hi ctermfg=NONE
     call s:toggle_to('move')
   else
-    "highlight boxboy_player_hi ctermfg=magenta
+    highlight boxboy_player_hi ctermfg=magenta
     call s:toggle_to('gen')
   endif
 endfunction
@@ -187,31 +188,50 @@ function! s:NewStack() abort
 endfunction
 " }}}
 
-let s:gen_length = 0
-let s:stack = s:NewStack()
+" class GenBlock {{{
 
-function! s:set_gen_block_on(dir) abort
-  execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
-  let s:gen_length += 1
+" start is [ row, col ]
+let s:GenBlock = { 'start' : [0, 0], 'dirctions' : {}, 'head' : [0, 0], 'len' : 0 }
+function! s:GenBlock.new(start) abort
+  let l:ret = deepcopy(s:GenBlock)
+  let l:ret.start = a:start
+  let l:ret.head  = a:start
+  let l:ret.directions = s:NewStack()
+  return l:ret
 endfunction
 
-function! s:generate_block(dir) abort
-  if s:is_movable(a:dir) && s:getchar_on(a:dir) !=# 'G'
-    if s:gen_length == 0 && a:dir =~# '[hl]'
-      let s:player.prev_dir = a:dir
-    endif
-    call s:set_gen_block_on(a:dir)
-    call s:stack.push(a:dir)
-  else
-    if a:dir ==# 'j' && s:getchar_on_cursor() !=# s:PLAYER_CH
-      if s:can_lift() && s:getchar_on('j') !~# '[A#]'
-        call s:lift_up_player_and_gen_blocks()
-        call s:set_gen_block_on('')
-        call s:stack.push(a:dir)
-      endif
-    endif
+function! s:GenBlock.move_head(dir) abort
+  if a:dir ==# 'h'
+    let self.head[1] -= 1
+  elseif a:dir ==# 'j'
+    let self.head[0] += 1
+  elseif a:dir ==# 'k'
+    let self.head[0] -= 1
+  elseif a:dir ==# 'l'
+    let self.head[1] += 1
   endif
 endfunction
+
+function! s:GenBlock.extend(dir) abort
+  call cursor(self.head[0], self.head[1])
+  execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
+  call self.move_head(a:dir)
+  call self.directions.push(a:dir)
+  let self.len += 1
+endfunction
+
+function! s:GenBlock.shrink() abort
+  let l:rev = { 'h' : 'l', 'j' : 'k', 'k' : 'j', 'l' : 'h' }
+  let l:ch = l:rev[self.directions.pop()]
+  call cursor(self.head[0], self.head[1])
+  execute 'normal! r ' . l:ch
+  call self.move_head(l:ch)
+  let self.len -= 1
+endfunction
+
+" }}}
+
+let s:stack = s:NewStack()
 
 function! s:resume_genblock() abort
   try
@@ -247,12 +267,28 @@ endfunction
 "   mode 0 is PLAYER MOVE MODE
 "   mode 1 is BLOCK GENERATE MODE
 " prev_dir is a direction which player move to previously
-let s:Player = { 'x' : 0, 'y' : 0 , 'mode' : 0, 'prev_dir' : 'l' }
+" genblock is GenBlock class
+let s:Player = { 'x' : 0, 'y' : 0 , 'mode' : 0, 'prev_dir' : 'l', 'genblock' : {} }
 function! s:Player.new(row, col) abort
   let l:ret   = copy(s:Player)
   let l:ret.x = a:col
   let l:ret.y = a:row
+  let l:genblock = s:GenBlock.new([a:row, a:col])
   return l:ret
+endfunction
+
+function! s:Player.toggle_mode() abort
+  if self.mode == 0
+    " TOGGLE TO GENERATE BLOCK MODE
+    let self.genblock = s:GenBlock.new([self.y, self.x])
+    let self.mode = 1
+  else
+    " TOGGLE TO PLAYER MOVE MODE
+    let l:pos = s:player.genblock.head
+    call cursor(l:pos[0], l:pos[1])
+    call s:reset_hilight_ch()
+    let self.mode = 0
+  endif
 endfunction
 
 " Player moves to a specifiing direction.
@@ -283,6 +319,18 @@ function! s:Player.hook_shot() abort
     execute 'normal! TOr' . s:PLAYER_CH
   endif
   let s:player.x = col('.')
+endfunction
+
+function! s:Player.init_block() abort
+  let self.genblock = s:GenBlock.new([self.y, self.x])
+endfunction
+
+function! s:Player.extend_block(dir) abort
+  call self.genblock.extend(a:dir)
+endfunction
+
+function! s:Player.shrink_block(dir) abort
+  call self.genblock.shrink(a:dir)
 endfunction
 
 " }}}
@@ -594,21 +642,21 @@ function! s:process_genmode(key) abort
   try
     if !s:stack.empty() && s:reverse_dir(a:key) ==# s:stack.top()
       call s:resume_genblock()
-    elseif s:gen_length >= s:stage.get_gen_length_max()
+    elseif s:player.genblock.len >= s:stage.get_gen_length_max()
       return
     elseif a:key ==# 'h'
-      call s:generate_block('h')
+      call s:player.extend_block('h')
     elseif a:key ==# 'j'
-      call s:generate_block('j')
+      call s:player.extend_block('j')
     elseif a:key ==# 'k'
-      call s:generate_block('k')
+      call s:player.extend_block('k')
     elseif a:key ==# 'l'
-      call s:generate_block('l')
+      call s:player.extend_block('l')
     endif
   catch /^Stack.*/
     echomsg 'key_events:stack is empty'
   endtry
-  if s:gen_length < s:stage.get_gen_length_max()
+  if s:player.genblock.len < s:stage.get_gen_length_max()
     call s:set_hilight_ch()
   endif
 endfunction
@@ -649,12 +697,15 @@ endfunction
 
 function! s:key_events(key) abort
   if a:key ==# 't'
-    call s:toggle_mode()
+    call s:player.toggle_mode()
+    "call s:toggle_mode()
     return
   endif
 
   if s:player.mode
     " BLOCK GENEREATE MODE
+    let l:pos = s:player.genblock.head
+    call cursor(l:pos[0], l:pos[1])
     call s:process_genmode(a:key)
   else
     " PLAYER MOVE MODE
@@ -755,7 +806,6 @@ endfunction
 
 " Main {{{
 
-let s:stage_bottom_line = 0
 
 let s:FRATE = 5000
 let s:frate = 0
@@ -768,16 +818,6 @@ function! s:update() abort
     endif
     call cursor(s:player.y, s:player.x)
     call s:key_events(nr2char(l:ch))
-    "if s:stage.check_event(s:player_pos)
-    "  let l:event = s:stage.get_event(s:player_pos)
-    "  " assume that receive AppearHelpWindow event
-    "  " AppearHelpwindow format is
-    "  " [ 'AppearHelpWindow', 'move_right', 2, 2 ]
-    "  " DisappearHelpWindow format is
-    "  " [ 'DisappearHelpWindow' ]
-    "  let l:window = s:HelpWindowManager.get_window(l:event[1])
-    "  call s:Drawer.draw_help_window(l:window, l:event[2], l:event[3])
-    "endif
   endif
 
   if s:frate > s:FRATE
