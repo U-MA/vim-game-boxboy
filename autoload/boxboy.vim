@@ -635,6 +635,10 @@ function! s:Room.next() abort
   let self.idx += 1
 endfunction
 
+function! s:Room.has_next() abort
+  return self.idx+1 < len(self.stages)
+endfunction
+
 " }}}
 
 " class Room Manager {{{
@@ -705,6 +709,12 @@ function! s:Drawer.draw_information() abort
   endfor
 endfunction
 
+function! s:Drawer.draw_appriciate() abort
+  call setline(1, 'Thank you for playing')
+  call setline(2, '')
+  call setline(3, 'Press any key to finish this game')
+endfunction
+
 " }}}
 
 " Main {{{
@@ -721,13 +731,22 @@ function! s:update() abort
   endif
 
   if (s:is_clear())
-    call s:room.next()
-    let s:stage = s:room.get_stage()
-    %delete
-    call s:Drawer.draw_stage(s:stage)
-    call s:Drawer.draw_information()
-    call s:move_cursor_to_start()
-    call s:set_player_to_cursor()
+    if (s:room.has_next())
+      call s:room.next()
+      let s:stage = s:room.get_stage()
+      %delete
+      call s:Drawer.draw_stage(s:stage)
+      call s:Drawer.draw_information()
+      call search('G', 'w')
+      let s:goal_pos = getpos('.')
+      call s:move_cursor_to_start()
+      call s:set_player_to_cursor()
+    else
+      %delete
+      call s:Drawer.draw_appriciate()
+      call getchar()
+      return 0
+    endif
   endif
   return 1
 endfunction
@@ -775,6 +794,7 @@ function! boxboy#main() abort
   call s:move_cursor_to_start()
   call s:set_player_to_cursor()
   redraw
+
   while s:update()
     nohl
     redraw
