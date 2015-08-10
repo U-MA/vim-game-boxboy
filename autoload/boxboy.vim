@@ -698,7 +698,9 @@ endfunction
 function! s:key_events(key) abort
   if a:key ==# 't'
     call s:player.toggle_mode()
-    "call s:toggle_mode()
+    if s:player.mode
+      call s:erase_blocks()
+    endif
     return
   endif
 
