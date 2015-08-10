@@ -6,6 +6,29 @@
 let s:save_cpo = &cpo
 set cpo&vim
 
+" Public functions {{{
+
+" window_data is a dictionary which has following keys:
+"   name   : a window name
+"   window : a window. value type is list.
+"   start  : a player relative position from upper-left of this window
+"   script : player moves following this script
+function! boxboy#add_help_window(name, window_data) abort
+  call s:HelpWindowManager.add_window(a:name, a:window_data)
+endfunction
+
+" stage is a dictionary which has following keys:
+"   TODO: add discription
+function! boxboy#add_stage(room_name, stage) abort
+  if !s:RoomManager.has_room(a:room_name)
+    call s:RoomManager.create_room(a:room_name)
+  endif
+  call s:RoomManager.get_room(a:room_name).add_stage(a:stage)
+endfunction
+
+" }}}
+
+
 " Constant Values {{{
 let s:PLAYER_CH = 'A'
 " }}}
@@ -17,6 +40,8 @@ let s:PLAYER_CH = 'A'
 "   1: block generate mode
 let s:mode         = 0
 let s:previous_dir = 'l'
+
+let s:player_pos = [0, 0]
 
 function! s:init_player_information() abort
   let s:mode         = 0
@@ -40,20 +65,62 @@ let s:users_guide = [
 
 " }}}}
 
+" class Player {{{
+
+let s:Player = { 'x' : 0, 'y' : 0 }
+function! s:Player.new(y, x) abort
+  let l:ret   = copy(s:Player)
+  let l:ret.x = a:x
+  let l:ret.y = a:y
+  return l:ret
+endfunction
+
+function! s:Player.key_event(key) abort
+  if a:key ==# 'l'
+    execute 'normal! r lr' . s:PLAYER_CH
+    let self.x += 1
+  endif
+endfunction
+
+" }}}
+
 " Help window {{{
 
 " class HelpWindow {{{
 
-let s:HelpWindow = { 'name' : '', 'window' : [], 'script' : '' }
-function! s:HelpWindow.new(name, window, script) abort
-  let l:ret = copy(s:HelpWindow)
-  let l:ret.name = a:name
+let s:HelpWindow = { 'name' : '', 'window' : [], 'pos' : [0, 0], 'start' : [0, 0], 'script' : '', 'turn' : 0, 'player' : {} }
+function! s:HelpWindow.new(name, window, start, script) abort
+  let l:ret = deepcopy(s:HelpWindow)
+  let l:ret.name   = a:name
   let l:ret.window = a:window
+  let l:ret.start  = a:start
   let l:ret.script = a:script
 
-  " TODO: set initial position of player
+  " player position is a relative position from upper-left of window
+  let l:ret.player = s:Player.new(a:start[0], a:start[1])
 
   return l:ret
+endfunction
+
+function! s:HelpWindow.set_pos(row, col) abort
+  let self.pos[0] = a:row
+  let self.pos[1] = a:col
+endfunction
+
+function! s:HelpWindow.move() abort
+  call cursor(self.player.y+self.pos[0], self.player.x+self.pos[1])
+  if (self.turn >= len(self.script))
+    let self.turn = 0
+    execute 'normal! r '
+    let self.player.x = self.start[1]
+    let self.player.y = self.start[0]
+    call cursor(self.player.y+self.pos[0], self.player.x+self.pos[0])
+    execute 'normal! r' . s:PLAYER_CH
+  else
+    let l:key = self.script[self.turn]
+    call self.player.key_event(l:key)
+    let self.turn += 1
+  endif
 endfunction
 " }}}
 
@@ -62,10 +129,11 @@ endfunction
 " window is a dictionary which has following keys:
 "   name   : Window name
 "   window : A list of string.
+"   start  : Player initial position. [ row, col ]. upper-left is [0, 0]
 "   script : Player moves following this script
 let s:HelpWindowManager = { 'windows' : {} }
 function! s:HelpWindowManager.add_window(name, window) abort
-  let self.windows[a:name] = s:HelpWindow.new(a:window.name, a:window.window, a:window.script)
+  let self.windows[a:name] = s:HelpWindow.new(a:window.name, a:window.window, a:window.start, a:window.script)
 endfunction
 
 function! s:HelpWindowManager.get_window(name) abort
@@ -73,32 +141,6 @@ function! s:HelpWindowManager.get_window(name) abort
 endfunction
 
 " }}}
-
-call s:HelpWindowManager.add_window('jump', {
-  \ 'name'   : 'jump',
-  \ 'window' : [
-  \   '+-----------+',
-  \   '|           |',
-  \   '|     A     |',
-  \   '|===========|',
-  \   '|  [space]  |',
-  \   '+-----------+',
-  \ ],
-  \ 'script' : '  ',
-  \})
-
-call s:HelpWindowManager.add_window('move_right', {
-  \ 'name'   : 'move_right',
-  \ 'window' : [
-  \   '+-----------+',
-  \   '|           |',
-  \   '|     A     |',
-  \   '|===========|',
-  \   '|     l     |',
-  \   '+-----------+',
-  \ ],
-  \ 'script' : 'll',
-  \})
 
 "}}}
 
@@ -329,14 +371,8 @@ endfunction
 function! s:move_cursor_to_start() abort
   execute 'normal! gg0'
   call search('S', 'W')
-endfunction
-
-function! s:search_goal() abort
-  let l:pos = getpos('.')
-  execute 'normal! gg0'
-  let l:ret = search('G', 'W', s:stage_bottom_line)
-  call setpos('.', l:pos)
-  return l:ret
+  let s:player_pos[0] = line('.')
+  let s:player_pos[1] = col('.')
 endfunction
 
 function! s:open_door() abort
@@ -465,6 +501,7 @@ function! s:right() abort
   let s:previous_dir = 'l'
   if s:is_movable('l')
     execute 'normal! r lr' . s:PLAYER_CH
+    let s:player_pos[1] += 1
   endif
 endfunction
 
@@ -472,6 +509,7 @@ function! s:left() abort
   let s:previous_dir = 'h'
   if s:is_movable('h')
     execute 'normal! r hr' . s:PLAYER_CH
+    let s:player_pos[1] -= 1
   endif
 endfunction
 
@@ -483,6 +521,7 @@ function! s:down() abort
   while !s:is_block(s:getchar_on('j'))
     sleep 250m
     execute 'normal! r jr' . s:PLAYER_CH
+    let s:player_pos[0] += 1
     redraw!
   endwhile
   sleep 150m
@@ -497,6 +536,7 @@ function! s:jump() abort
   while jmp_count > 0
     if s:is_movable('k')
       execute 'normal! r kr' . s:PLAYER_CH
+      let s:player_pos[0] -= 1
       let jmp_count -= 1
     else
       break
@@ -517,11 +557,13 @@ function! s:hook_shot() abort
     if match(line[col('.')-1:], 'A\s*O') != -1
       execute 'normal! r '
       execute 'normal! tOr' . s:PLAYER_CH
+      let s:player_pos[1] = col('.')
     endif
   else
     if match(line[:col('.')-1], 'O\s*A') != -1
       execute 'normal! r '
       execute 'normal! TOr' . s:PLAYER_CH
+      let s:player_pos[1] = col('.')
     endif
   endif
 endfunction
@@ -671,13 +713,6 @@ endfunction
 
 " }}}
 
-function! boxboy#add_stage(room_name, stage) abort
-  if !s:RoomManager.has_room(a:room_name)
-    call s:RoomManager.create_room(a:room_name)
-  endif
-  call s:RoomManager.get_room(a:room_name).add_stage(a:stage)
-endfunction
-
 let s:boxboy_dir = split(globpath(&runtimepath, 'autoload/boxboy'), '\n')
 let s:stage_set_files = split(glob(s:boxboy_dir[0] . '/*.vim'), '\n')
 for s:stage_set_file in s:stage_set_files
@@ -738,9 +773,33 @@ endfunction
 
 " }}}
 
+" class MovableObjectsManager {{{
+
+" All registered objects MUST have move().
+let s:MovableObjectsManager = { 'objects' : [] }
+function! s:MovableObjectsManager.add(object) abort
+  call add(self.objects, a:object)
+endfunction
+
+function! s:MovableObjectsManager.clear() abort
+  let self.objects = []
+endfunction
+
+" All registered objects invoke move()
+function! s:MovableObjectsManager.move() abort
+  for l:obj in self.objects
+    call l:obj.move()
+  endfor
+endfunction
+
+" }}}
+
 " Main {{{
 
 let s:stage_bottom_line = 0
+
+let s:FRATE = 5000
+let s:frate = 0
 
 function! s:update() abort
   let l:ch = getchar(0)
@@ -748,8 +807,25 @@ function! s:update() abort
     if (nr2char(l:ch) ==# 'Q')
       return 0
     endif
+    call cursor(s:player_pos[0], s:player_pos[1])
     call s:key_events(nr2char(l:ch))
+    "if s:stage.check_event(s:player_pos)
+    "  let l:event = s:stage.get_event(s:player_pos)
+    "  " assume that receive AppearHelpWindow event
+    "  " AppearHelpwindow format is
+    "  " [ 'AppearHelpWindow', 'move_right', 2, 2 ]
+    "  " DisappearHelpWindow format is
+    "  " [ 'DisappearHelpWindow' ]
+    "  let l:window = s:HelpWindowManager.get_window(l:event[1])
+    "  call s:Drawer.draw_help_window(l:window, l:event[2], l:event[3])
+    "endif
   endif
+
+  if s:frate > s:FRATE
+    call s:MovableObjectsManager.move()
+    let s:frate = 0
+  endif
+  let s:frate += 1
 
   if (s:is_clear())
     if (s:room.has_next())
@@ -762,6 +838,7 @@ function! s:update() abort
       let s:goal_pos = getpos('.')
       call s:move_cursor_to_start()
       call s:set_player_to_cursor()
+      call s:MovableObjectsManager.clear()
     else
       %delete
       call s:Drawer.draw_appriciate()
@@ -814,6 +891,11 @@ function! boxboy#main() abort
   let s:goal_pos = getpos('.')
   call s:move_cursor_to_start()
   call s:set_player_to_cursor()
+
+  let l:help_window = s:HelpWindowManager.get_window('move_right')
+  call l:help_window.set_pos(2, 2)
+  call s:Drawer.draw_help_window(l:help_window, 2, 2)
+  call s:MovableObjectsManager.add(l:help_window)
   redraw
 
 
