@@ -36,7 +36,7 @@ endfunction
 " }}}
 
 
-" Constant Values {{{
+" Constant values {{{
 
 let s:PLAYER_CH = 'A'
 
