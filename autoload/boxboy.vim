@@ -26,24 +26,14 @@ function! boxboy#add_stage(room_name, stage) abort
   call s:RoomManager.get_room(a:room_name).add_stage(a:stage)
 endfunction
 
+function! boxboy#add_script(script_name, script) abort
+  if !has_key(s:scripts, a:script_name)
+    let s:scripts[a:script_name] = []
+  endif
+  call add(s:scripts[a:script_name], a:script)
+endfunction
+
 " }}}
-
-
-" Script {{{
-
-" This guide should move another file.
-let s:users_guide = [
-      \ '[ user guide ]',
-      \ '',
-      \ '   h   : Move left',
-      \ '   l   : Move right',
-      \ '<space>: Jump',
-      \ '',
-      \ '   r   : Restart',
-      \ '   Q   : Quit game'
-      \ ]
-
-" }}}}
 
 
 " Constant Values {{{
@@ -54,6 +44,12 @@ let s:PLAYER_CH = 'A'
 let s:gen_block_ch = '#'
 let s:blocks = [ '=', '#', 'O' ]
 " }}}
+
+" }}}
+
+" Global values {{{
+
+  let s:scripts = {}
 
 " }}}
 
@@ -515,15 +511,15 @@ function! s:Drawer.draw_information() abort
   call setline(line('$')+1, s:room.name . ': ' . s:stage.id)
   call setline(line('$')+1, 'MAX GENERATE LENGTH: ' . s:stage.get_gen_length_max())
   call setline(line('$')+1, '')
-  for l:line in s:users_guide
+  for l:line in s:scripts['user_guide']
     call setline(line('$')+1, l:line)
   endfor
 endfunction
 
 function! s:Drawer.draw_appriciate() abort
-  call setline(1, 'Thank you for playing')
-  call setline(2, '')
-  call setline(3, 'Press any key to finish this game')
+  for l:line in s:scripts['congrats']
+    call setline(line('$')+1, l:line)
+  endfor
 endfunction
 
 " (row, col) is the upper-left corner.
