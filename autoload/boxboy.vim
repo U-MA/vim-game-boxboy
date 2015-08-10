@@ -31,6 +31,12 @@ endfunction
 
 " Constant Values {{{
 let s:PLAYER_CH = 'A'
+
+" Blocks {{{
+  let s:gen_block_ch = '#'
+  let s:blocks = [ '=', '#', 'O' ]
+" }}}
+
 " }}}
 
 "Player information {{{
@@ -43,11 +49,6 @@ let s:previous_dir = 'l'
 
 let s:player_pos = [0, 0]
 
-function! s:init_player_information() abort
-  let s:mode         = 0
-  let s:previous_dir = 'l'
-  let s:save_ch      = []
-endfunction
 " }}}
 
 " Script {{{
@@ -234,11 +235,6 @@ function! s:toggle_mode() abort
   endfunction
 " }}}
 
-" Blocks {{{
-  let s:gen_block_ch = '#'
-  let s:blocks = [ '=', '#', 'O' ]
-" }}}
-
 " Utility {{{
 
 " Stack {{{
@@ -373,18 +369,6 @@ function! s:move_cursor_to_start() abort
   call search('S', 'W')
   let s:player_pos[0] = line('.')
   let s:player_pos[1] = col('.')
-endfunction
-
-function! s:open_door() abort
-  let l:pos = getpos('.')
-  if search('|', 'w')
-    silent %substitute/|/ /g
-  endif
-  call setpos('.', l:pos)
-endfunction
-
-function! s:close_door() abort
-  "TODO
 endfunction
 
 function! s:reverse_dir(dir) abort
