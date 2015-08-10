@@ -33,15 +33,15 @@ endfunction
 
 " This guide should move another file.
 let s:users_guide = [
-  \ '[ user guide ]',
-  \ '',
-  \ '   h   : Move left',
-  \ '   l   : Move right',
-  \ '<space>: Jump',
-  \ '',
-  \ '   r   : Restart',
-  \ '   Q   : Quit game'
-  \ ]
+      \ '[ user guide ]',
+      \ '',
+      \ '   h   : Move left',
+      \ '   l   : Move right',
+      \ '<space>: Jump',
+      \ '',
+      \ '   r   : Restart',
+      \ '   Q   : Quit game'
+      \ ]
 
 " }}}}
 
@@ -51,18 +51,14 @@ let s:users_guide = [
 let s:PLAYER_CH = 'A'
 
 " Blocks {{{
-  let s:gen_block_ch = '#'
-  let s:blocks = [ '=', '#', 'O' ]
+let s:gen_block_ch = '#'
+let s:blocks = [ '=', '#', 'O' ]
 " }}}
 
 " }}}
 
 
-" Mode {{{
-
-"function! s:get_mode() abort
-"  return s:mode
-"endfunction
+" Change view depending on player's mode {{{
 
 " a:mode == 'move' or 'gen'
 function! s:ready_to_switch(mode) abort
@@ -109,10 +105,7 @@ function! s:toggle_mode() abort
     "highlight boxboy_player_hi ctermfg=magenta
     call s:toggle_to('gen')
   endif
-  endfunction
-" }}}
-
-" Hilight {{{
+endfunction
 
 " ['h', 'j', 'k', 'l']
 let s:save_ch = []
@@ -252,6 +245,7 @@ endfunction
 " class Player {{{
 
 " Note: player do not detect any collisions.
+" Note: player repaint gamebuffer.
 
 " mode is 0 or 1.
 "   mode 0 is PLAYER MOVE MODE
@@ -266,7 +260,6 @@ function! s:Player.new(row, col) abort
 endfunction
 
 " Player moves to a specifiing direction.
-" Note: this function repaint gamebuffer.
 function! s:Player.move(dir) abort
   if a:dir ==# 'h'
     execute 'normal! r hr' . s:PLAYER_CH
@@ -279,10 +272,21 @@ function! s:Player.move(dir) abort
 endfunction
 
 " Player jumps up.
-" Note: this function repaint gamebuffer.
 function! s:Player.jump() abort
   execute 'normal! r kr' . s:PLAYER_CH
   let self.y -= 1
+endfunction
+
+" Player hookshots before 'O'
+function! s:Player.hook_shot() abort
+  if s:player.prev_dir ==# 'l'
+    execute 'normal! r '
+    execute 'normal! tOr' . s:PLAYER_CH
+  else
+    execute 'normal! r '
+    execute 'normal! TOr' . s:PLAYER_CH
+  endif
+  let s:player.x = col('.')
 endfunction
 
 " }}}
@@ -556,22 +560,6 @@ endfunction
 
 " Key event {{{
 
-function! s:right() abort
-  let s:player.prev_dir = 'l'
-  if s:is_movable('l')
-    execute 'normal! r lr' . s:PLAYER_CH
-    let s:player.x += 1
-  endif
-endfunction
-
-function! s:left() abort
-  let s:player.prev_dir = 'h'
-  if s:is_movable('h')
-    execute 'normal! r hr' . s:PLAYER_CH
-    let s:player.x -= 1
-  endif
-endfunction
-
 function! s:down() abort
   if s:is_block(s:getchar_on('j'))
     return
@@ -586,47 +574,6 @@ function! s:down() abort
   sleep 150m
 endfunction
 
-function! s:jump() abort
-  if !s:is_block(s:getchar_on('j'))
-    return
-  endif
-
-  let jmp_count = 1
-  while jmp_count > 0
-    if s:is_movable('k')
-      execute 'normal! r kr' . s:PLAYER_CH
-      let s:player.y -= 1
-      let jmp_count -= 1
-    else
-      break
-    endif
-  endwhile
-  if s:player.prev_dir ==# 'l'
-    call s:right()
-  else
-    call s:left()
-  endif
-  redraw!
-  sleep 50m
-endfunction
-
-function! s:hook_shot() abort
-  let line = getline('.')
-  if s:player.prev_dir ==# 'l'
-    if match(line[col('.')-1:], 'A\s*O') != -1
-      execute 'normal! r '
-      execute 'normal! tOr' . s:PLAYER_CH
-      let s:player.x = col('.')
-    endif
-  else
-    if match(line[:col('.')-1], 'O\s*A') != -1
-      execute 'normal! r '
-      execute 'normal! TOr' . s:PLAYER_CH
-      let s:player.x = col('.')
-    endif
-  endif
-endfunction
-
 function! s:erase_blocks() abort
   let tmp_pos = getpos('.')
   execute 'normal! gg0'
@@ -636,65 +583,86 @@ function! s:erase_blocks() abort
   call setpos('.', tmp_pos)
 endfunction
 
+" cursor MUST point to player
+function! s:can_hook() abort
+  let line = getline('.')
+  if s:player.prev_dir ==# 'l'
+    return match(line[col('.')-1:], 'A\s*O') != -1
+  else
+    return match(line[:col('.')-1], 'O\s*A') != -1
+  endif
+endfunction
+
+function! s:process_genmode(key) abort
+  call s:reset_hilight_ch()
+  try
+    if !s:stack.empty() && s:reverse_dir(a:key) ==# s:stack.top()
+      call s:resume_genblock()
+    elseif s:gen_length >= s:stage.get_gen_length_max()
+      return
+    elseif a:key ==# 'h'
+      call s:generate_block('h')
+    elseif a:key ==# 'j'
+      call s:generate_block('j')
+    elseif a:key ==# 'k'
+      call s:generate_block('k')
+    elseif a:key ==# 'l'
+      call s:generate_block('l')
+    endif
+  catch /^Stack.*/
+    echomsg 'key_events:stack is empty'
+  endtry
+  if s:gen_length < s:stage.get_gen_length_max()
+    call s:set_hilight_ch()
+  endif
+endfunction
+
+function! s:process_movemode(key) abort
+  " TODO: detect some collisions
+  if a:key ==# 'l'
+    call s:player.move('l')
+    call s:down()
+  elseif a:key ==# 'h'
+    call s:player.move('h')
+    call s:down()
+  elseif a:key ==# ' '
+    call s:player.jump()
+    call s:player.move(s:player.prev_dir)
+    call s:down()
+
+    " TODO:
+    " for stop always jump
+    " But ugly code
+    " Hope beautiful code
+    let l:i = getchar(0)
+    while l:i
+      let l:i = getchar(0)
+    endwhile
+    call feedkeys(nr2char(l:i), 't')
+  elseif a:key ==# 'f'
+    if s:can_hook()
+      call s:player.hook_shot()
+    endif
+    call s:down()
+  elseif a:key ==# 'x'
+    call s:erase_blocks()
+    call s:down()
+  endif
+  call s:genblocks_fall_if_possible()
+endfunction
+
 function! s:key_events(key) abort
   if a:key ==# 't'
     call s:toggle_mode()
     return
   endif
 
-  if s:player.mode " block generate
-    call s:reset_hilight_ch()
-    try
-      if !s:stack.empty() && s:reverse_dir(a:key) ==# s:stack.top()
-        call s:resume_genblock()
-      elseif s:gen_length >= s:stage.get_gen_length_max()
-        return
-      elseif a:key ==# 'h'
-        call s:generate_block('h')
-      elseif a:key ==# 'j'
-        call s:generate_block('j')
-      elseif a:key ==# 'k'
-        call s:generate_block('k')
-      elseif a:key ==# 'l'
-        call s:generate_block('l')
-      endif
-    catch /^Stack.*/
-      echomsg 'key_events:stack is empty'
-    endtry
-    if s:gen_length < s:stage.get_gen_length_max()
-      call s:set_hilight_ch()
-    endif
-  else "player move
-    " TODO: detect some collisions
-    if a:key ==# 'l'
-      call s:player.move('l')
-      call s:down()
-    elseif a:key ==# 'h'
-      call s:player.move('h')
-      call s:down()
-    elseif a:key ==# ' '
-      call s:player.jump()
-      call s:player.move(s:player.prev_dir)
-      call s:down()
-
-      " TODO:
-      " for stop always jump
-      " But ugly code
-      " Hope beautiful code
-      let l:i = getchar(0)
-      while l:i
-        let l:i = getchar(0)
-      endwhile
-      call feedkeys(nr2char(l:i), 't')
-    elseif a:key ==# 'f'
-      call s:hook_shot()
-      call s:down()
-    elseif a:key ==# 'x'
-      call s:erase_blocks()
-      call s:down()
-    endif
-
-    call s:genblocks_fall_if_possible()
+  if s:player.mode
+    " BLOCK GENEREATE MODE
+    call s:process_genmode(a:key)
+  else
+    " PLAYER MOVE MODE
+    call s:process_movemode(a:key)
   endif
 endfunction
 "}}}
