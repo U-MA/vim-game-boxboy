@@ -6,8 +6,11 @@
 let s:save_cpo = &cpo
 set cpo&vim
 
+" Constant Values {{{
+let s:PLAYER_CH = 'A'
+" }}}
+
 "Player information {{{
-let s:player_ch = 'A'
 
 " mode
 "   0: player move mode
@@ -69,20 +72,20 @@ function! s:help_jump(ver) abort
 
   redraw
   sleep 1
-  highlight boxboy_space_key_hi ctermfg=darkgray
+  "highlight boxboy_space_key_hi ctermfg=darkgray
   sleep 300m
   call s:key_events(' ')
-  highlight boxboy_space_key_hi ctermfg=NONE
+  "highlight boxboy_space_key_hi ctermfg=NONE
 
   redraw
   sleep 1
-  highlight boxboy_space_key_hi ctermfg=darkgray
+  "highlight boxboy_space_key_hi ctermfg=darkgray
   sleep 300m
   call s:key_events(' ')
-  highlight boxboy_space_key_hi ctermfg=NONE
+  "highlight boxboy_space_key_hi ctermfg=NONE
 
   call setpos('.', l:pos)
-  execute 'normal! r' . s:player_ch
+  execute 'normal! r' . s:PLAYER_CH
 endfunction
 
 " }}}
@@ -98,11 +101,11 @@ function! s:set_hilight_ch() abort
     let l:ch = s:getchar_on(l:dir)
     call add(s:save_ch, l:ch)
     if l:dir =~# '[hkl]'
-      if !s:is_block(l:ch) && l:ch !=# s:player_ch && l:ch !=# 'G'
+      if !s:is_block(l:ch) && l:ch !=# s:PLAYER_CH && l:ch !=# 'G'
         call s:setchar_on(l:dir, l:arrows[l:dir])
       endif
     else
-      if s:getchar_on_cursor() !=# s:player_ch && l:ch !=# '#' && l:ch !=# s:player_ch && l:ch !=# 'G'
+      if s:getchar_on_cursor() !=# s:PLAYER_CH && l:ch !=# '#' && l:ch !=# s:PLAYER_CH && l:ch !=# 'G'
         call s:setchar_on(l:dir, l:arrows[l:dir])
       endif
     endif
@@ -133,9 +136,8 @@ endfunction
 function! s:ready_to_switch(mode) abort
   if a:mode ==# 'move'
     call s:reset_hilight_ch()
-    call s:change_to_genblocks()
     execute 'normal! gg0'
-    call search(s:player_ch, 'w', s:stage_bottom_line)
+    call search(s:PLAYER_CH, 'w', s:stage_bottom_line)
     call s:genblocks_fall_if_possible()
   else
     let s:gen_length = 0
@@ -169,10 +171,10 @@ endfunction
 
 function! s:toggle_mode() abort
   if s:mode
-    highlight boxboy_player ctermfg=NONE
+    "highlight boxboy_player_hi ctermfg=NONE
     call s:toggle_to('move')
   else
-    highlight boxboy_player ctermfg=magenta
+    "highlight boxboy_player_hi ctermfg=magenta
     call s:toggle_to('gen')
   endif
   endfunction
@@ -243,7 +245,7 @@ endfunction
 function! s:is_on_ground() abort
   let l:pos = getpos('.')
   execute 'normal! gg0'
-  call search(s:player_ch, 'W', s:stage_bottom_line)
+  call search(s:PLAYER_CH, 'W', s:stage_bottom_line)
   let l:ret = s:getchar_on('j')
   call setpos('.', l:pos)
   return s:is_block(l:ret)
@@ -396,7 +398,7 @@ function! s:getchar_on_cursor() abort
 endfunction
 
 function! s:set_player_to_cursor() abort
-  execute 'normal! r' . s:player_ch
+  execute 'normal! r' . s:PLAYER_CH
 endfunction
 
 function! s:getchar_on(dir) abort
@@ -423,7 +425,7 @@ endfunction
 " dir == [hjkl]
 function! s:is_movable(dir) abort
   let c = s:getchar_on(a:dir)
-  return !s:is_block(c) && (c !=# s:player_ch)
+  return !s:is_block(c) && (c !=# s:PLAYER_CH)
 endfunction
 
 function! s:exist_genblocks() abort
@@ -441,15 +443,6 @@ endfunction
 let s:gen_length = 0
 let s:stack = s:NewStack()
 
-function! s:change_to_genblocks() abort
-  let l:pos = getpos('.')
-  execute 'normal! gg0'
-  while search('*', 'W', s:stage_bottom_line)
-    execute 'normal! r' . s:gen_block_ch
-  endwhile
-  call setpos('.', l:pos)
-endfunction
-
 function! s:set_gen_block_on(dir) abort
   execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
   let s:gen_length += 1
@@ -463,7 +456,7 @@ function! s:generate_block(dir) abort
     call s:set_gen_block_on(a:dir)
     call s:stack.push(a:dir)
   else
-    if a:dir ==# 'j' && s:getchar_on_cursor() !=# s:player_ch
+    if a:dir ==# 'j' && s:getchar_on_cursor() !=# s:PLAYER_CH
       if s:can_lift() && s:getchar_on('j') !~# '[A#]'
         call s:lift_up_player_and_gen_blocks()
         call s:set_gen_block_on('')
@@ -503,14 +496,14 @@ endfunction
 function! s:right() abort
   let s:previous_dir = 'l'
   if s:is_movable('l')
-    execute 'normal! r lr' . s:player_ch
+    execute 'normal! r lr' . s:PLAYER_CH
   endif
 endfunction
 
 function! s:left() abort
   let s:previous_dir = 'h'
   if s:is_movable('h')
-    execute 'normal! r hr' . s:player_ch
+    execute 'normal! r hr' . s:PLAYER_CH
   endif
 endfunction
 
@@ -521,7 +514,7 @@ function! s:down() abort
 
   while !s:is_block(s:getchar_on('j'))
     sleep 250m
-    execute 'normal! r jr' . s:player_ch
+    execute 'normal! r jr' . s:PLAYER_CH
     redraw!
   endwhile
   sleep 150m
@@ -535,7 +528,7 @@ function! s:jump() abort
   let jmp_count = 1
   while jmp_count > 0
     if s:is_movable('k')
-      execute 'normal! r kr' . s:player_ch
+      execute 'normal! r kr' . s:PLAYER_CH
       let jmp_count -= 1
     else
       break
@@ -555,12 +548,12 @@ function! s:hook_shot() abort
   if s:previous_dir ==# 'l'
     if match(line[col('.')-1:], 'A\s*O') != -1
       execute 'normal! r '
-      execute 'normal! tOr' . s:player_ch
+      execute 'normal! tOr' . s:PLAYER_CH
     endif
   else
     if match(line[:col('.')-1], 'O\s*A') != -1
       execute 'normal! r '
-      execute 'normal! TOr' . s:player_ch
+      execute 'normal! TOr' . s:PLAYER_CH
     endif
   endif
 endfunction
@@ -704,10 +697,6 @@ function! s:RoomManager.get_room(room_name) abort
   return self.rooms[a:room_name]
 endfunction
 
-function! s:RoomManager.show_roomname() abort
-  PP self.rooms
-endfunction
-
 " }}}
 
 function! boxboy#add_stage(room_name, stage) abort
@@ -847,7 +836,7 @@ endfunction
 
 function! s:setup_all() abort
   %delete
-  highlight boxboy_player ctermfg=NONE
+  "highlight boxboy_player_hi ctermfg=NONE
   call s:init_player_information()
   call s:setup_stage()
   "call s:save_button_pos()
@@ -863,8 +852,6 @@ function! s:update() abort
   if (l:ch != 0)
     if (nr2char(l:ch) ==# 'Q')
       return 0
-    elseif (nr2char(l:ch) ==# 'M')
-      call s:RoomManager.show_roomname()
     endif
     call s:key_events(nr2char(l:ch))
   endif
@@ -886,7 +873,7 @@ function! s:open_gametab() abort
 endfunction
 
 function! s:close_gametab() abort
-  bd!
+  bdelete!
 endfunction
 
 function! boxboy#main() abort
@@ -897,18 +884,21 @@ function! boxboy#main() abort
   syntax match boxboy_block /=/    contained
   syntax match boxboy_genblock /#/ contained
   syntax match boxboy_space_key /[space]/ contained
+  syntax match boxboy_player /A/ contained
 
-  syntax region boxboy_stage start=/\%^/ end=/^$/ contains=boxboy_dir,boxboy_player,boxboy_block,boxboy_genblock,boxboy_space_key
+  syntax region boxboy_stage start=/\%^/ end=/^$/ contains=boxboy_dir,boxboy_block,boxboy_genblock,boxboy_space_key,boxboy_player
 
   highlight boxboy_dir_hi guibg=blue ctermbg=blue
   highlight boxboy_block_hi guifg=gray guibg=lightgray ctermfg=gray ctermbg=lightgray
   highlight boxboy_genblock_hi guifg=gray guibg=darkgray ctermfg=gray ctermbg=darkgray
   highlight boxboy_space_key_hi ctermfg=NONE
+  highlight boxboy_player_hi ctermfg=NONE
 
   highlight default link boxboy_dir boxboy_dir_hi
   highlight default link boxboy_block boxboy_block_hi
   highlight default link boxboy_genblock boxboy_genblock_hi
   highlight default link boxboy_space_key boxboy_space_key_hi
+  highlight default link boxboy_player boxboy_player_hi
   " }}}
 
   let s:default_room_name = 'test_play'
@@ -922,6 +912,7 @@ function! boxboy#main() abort
   call s:set_player_to_cursor()
   redraw
   while s:update()
+    nohl
     redraw
   endwhile
   call s:close_gametab()
