@@ -251,10 +251,6 @@ function! s:is_on_ground() abort
   return s:is_block(l:ret)
 endfunction
 
-function! s:set_gen_length_max(len) abort
-  let s:gen_length_max = a:len
-endfunction
-
 function! s:can_fall() abort
   let l:pos = getpos('.')
   execute 'normal! gg0'
@@ -331,18 +327,6 @@ function! s:search_goal() abort
   return l:ret
 endfunction
 
-"function! s:is_stage_with_button() abort
-"  return s:stage['button']
-"endfunction
-"
-"function! s:exist_button() abort
-"  let l:pos = getpos('.')
-"  execute 'normal! gg0'
-"  let l:ret = search('_', 'W', s:stage_bottom_line)
-"  call setpos('.', l:pos)
-"  return l:ret
-"endfunction
-
 function! s:open_door() abort
   let l:pos = getpos('.')
   if search('|', 'w')
@@ -353,34 +337,6 @@ endfunction
 
 function! s:close_door() abort
   "TODO
-endfunction
-
-function! s:check_stage() abort
-  if s:search_goal()
-    "if s:is_stage_with_button() 
-    "  if !s:exist_button()
-    "    call s:open_door()
-    "  else
-    "    call s:close_door()
-    "  endif
-    "endif
-    return 0
-  else
-    echo 'Clear'
-
-    let s:current_stage_no += 1
-
-    if s:current_stage_no > s:nstages-1
-      echo 'Finish'
-      return 1
-    endif
-
-    call s:room.next()
-    let s:stage = s:room.get_stage()
-    call s:setup_all()
-
-    return 1
-  endif
 endfunction
 
 function! s:reverse_dir(dir) abort
@@ -717,55 +673,6 @@ function! s:is_clear() abort
   return (l:pos[1] == s:goal_pos[1]) && (l:pos[2] == s:goal_pos[2])
 endfunction
 
-
-"function! s:go_to_room(room_name) abort
-"  let s:stage_set = s:stages[a:room_name]
-"  let s:current_stage_no = 0
-"  let s:stage = s:stage_set[s:current_stage_no]
-"  call s:draw_stage_and_information()
-"  execute 'normal! gg0'
-"  call search('G', 'w', s:stage_bottom_line)
-"  let s:goal_pos = getpos('.')
-"  call s:move_cursor_to_start()
-"  call s:set_player_to_cursor()
-"endfunction
-"
-"function! s:go_to_next_stage() abort
-"  %delete
-"  let s:current_stage_no += 1
-"  let s:stage = s:stage_set[s:current_stage_no]
-"  call s:draw_stage_and_information()
-"  call s:move_cursor_to_start()
-"  call s:set_player_to_cursor()
-"endfunction
-
-function! s:get_stage_id() abort
-  return s:current_stage_no
-endfunction
-
-" }}}
-
-" Disable keys {{{
-
-function! s:disable_all_keys() abort
-  let keys = []
-  call extend(keys, range(33, 48))
-  call extend(keys, range(58, 126))
-  for key in keys
-    if nr2char(key) ==# '|'
-      continue
-    endif
-
-    execute 'nnoremap <silent><buffer><nowait> ' . nr2char(key) . ' <Nop>'
-    execute 'vnoremap <silent><buffer><nowait> ' . nr2char(key) . ' <Nop>'
-    execute 'onoremap <silent><buffer><nowait> ' . nr2char(key) . ' <Nop>'
-
-    execute 'nnoremap <silent><buffer><nowait> g' . nr2char(key) . ' <Nop>'
-    execute 'vnoremap <silent><buffer><nowait> g' . nr2char(key) . ' <Nop>'
-    execute 'onoremap <silent><buffer><nowait> g' . nr2char(key) . ' <Nop>'
-  endfor
-endfunction
-
 " }}}
 
 " Animation {{{
@@ -802,50 +709,7 @@ endfunction
 
 " Main {{{
 
-let s:gen_max        = 0 " the max of generatable blocks
-let s:gen_length_max = 0 " the max length of generating blocks once
-
-"let s:nstages = len(s:stage_set)
 let s:stage_bottom_line = 0
-
-function! s:draw_stage_and_information() abort
-  call setline(1, s:stage.get_data())
-  let s:stage_bottom_line = line('$')
-  call setline(line('$')+1, '')
-  call setline(line('$')+1, 'MAX GENERATE LENGTH: ' . s:stage.get_gen_length_max)
-  call setline(line('$')+1, '')
-  for l:line in s:users_guide
-    call setline(line('$')+1, l:line)
-  endfor
-endfunction
-
-function! s:setup_stage() abort
-  "let s:gen_max        = s:stage['gen_max']
-  let s:gen_length_max = s:stage['gen_length']
-  call s:draw_stage_and_information()
-endfunction
-
-let s:button_pos = []
-function! s:save_button_pos() abort
-  if search('_', 'w')
-    let s:button_pos = getpos('.')
-  else
-    let s:button_pos = []
-  endif
-endfunction
-
-function! s:setup_all() abort
-  %delete
-  "highlight boxboy_player_hi ctermfg=NONE
-  call s:init_player_information()
-  call s:setup_stage()
-  "call s:save_button_pos()
-  execute 'normal! gg0'
-  call search('G', 'w')
-  let s:goal_pos = getpos('.')
-  call s:move_cursor_to_start()
-  call s:set_player_to_cursor()
-endfunction
 
 function! s:update() abort
   let l:ch = getchar(0)
