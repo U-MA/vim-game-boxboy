@@ -58,23 +58,11 @@ let s:PLAYER_CH = 'A'
 " }}}
 
 
-"Player information {{{
-
-" mode
-"   0: player move mode
-"   1: block generate mode
-let s:mode         = 0
-let s:previous_dir = 'l'
-
-let s:player_pos = [0, 0]
-
-" }}}
-
 " Mode {{{
 
-function! s:get_mode() abort
-  return s:mode
-endfunction
+"function! s:get_mode() abort
+"  return s:mode
+"endfunction
 
 " a:mode == 'move' or 'gen'
 function! s:ready_to_switch(mode) abort
@@ -95,9 +83,9 @@ endfunction
 " a:mode == 'move' or 'gen'
 function! s:switch_to(mode) abort
   if a:mode ==# 'move'
-    let s:mode = 0
+    let s:player.mode = 0
   else
-    let s:mode = 1
+    let s:player.mode = 1
   endif
 endfunction
 
@@ -114,7 +102,7 @@ function! s:toggle_to(mode) abort
 endfunction
 
 function! s:toggle_mode() abort
-  if s:mode
+  if s:player.mode
     "highlight boxboy_player_hi ctermfg=NONE
     call s:toggle_to('move')
   else
@@ -122,6 +110,42 @@ function! s:toggle_mode() abort
     call s:toggle_to('gen')
   endif
   endfunction
+" }}}
+
+" Hilight {{{
+
+" ['h', 'j', 'k', 'l']
+let s:save_ch = []
+
+function! s:set_hilight_ch() abort
+  let l:arrows = {'h' : '<', 'j' : 'v', 'k' : '^', 'l' : '>'}
+  for l:dir in ['h', 'j', 'k', 'l']
+    let l:ch = s:getchar_on(l:dir)
+    call add(s:save_ch, l:ch)
+    if l:dir =~# '[hkl]'
+      if !s:is_block(l:ch) && l:ch !=# s:PLAYER_CH && l:ch !=# 'G'
+        call s:setchar_on(l:dir, l:arrows[l:dir])
+      endif
+    else
+      if s:getchar_on_cursor() !=# s:PLAYER_CH && l:ch !=# '#' && l:ch !=# s:PLAYER_CH && l:ch !=# 'G'
+        call s:setchar_on(l:dir, l:arrows[l:dir])
+      endif
+    endif
+  endfor
+endfunction
+
+function! s:reset_hilight_ch() abort
+  if s:save_ch == []
+    return
+  endif
+
+  call s:setchar_on('h', s:save_ch[0])
+  call s:setchar_on('j', s:save_ch[1])
+  call s:setchar_on('k', s:save_ch[2])
+  call s:setchar_on('l', s:save_ch[3])
+  let s:save_ch = []
+endfunction
+
 " }}}
 
 " Block generater{{{
@@ -185,7 +209,7 @@ endfunction
 function! s:generate_block(dir) abort
   if s:is_movable(a:dir) && s:getchar_on(a:dir) !=# 'G'
     if s:gen_length == 0 && a:dir =~# '[hl]'
-      let s:previous_dir = a:dir
+      let s:player.prev_dir = a:dir
     endif
     call s:set_gen_block_on(a:dir)
     call s:stack.push(a:dir)
@@ -227,121 +251,52 @@ endfunction
 
 " class Player {{{
 
-let s:Player = { 'x' : 0, 'y' : 0 }
-function! s:Player.new(y, x) abort
+" Note: player do not detect any collisions.
+
+" mode is 0 or 1.
+"   mode 0 is PLAYER MOVE MODE
+"   mode 1 is BLOCK GENERATE MODE
+" prev_dir is a direction which player move to previously
+let s:Player = { 'x' : 0, 'y' : 0 , 'mode' : 0, 'prev_dir' : 'l' }
+function! s:Player.new(row, col) abort
   let l:ret   = copy(s:Player)
-  let l:ret.x = a:x
-  let l:ret.y = a:y
+  let l:ret.x = a:col
+  let l:ret.y = a:row
   return l:ret
 endfunction
 
-function! s:Player.key_event(key) abort
-  if a:key ==# 'l'
+" Player moves to a specifiing direction.
+" Note: this function repaint gamebuffer.
+function! s:Player.move(dir) abort
+  if a:dir ==# 'h'
+    execute 'normal! r hr' . s:PLAYER_CH
+    let self.x -= 1
+  elseif a:dir ==# 'l'
     execute 'normal! r lr' . s:PLAYER_CH
     let self.x += 1
   endif
+  let self.prev_dir = a:dir
+endfunction
+
+" Player jumps up.
+" Note: this function repaint gamebuffer.
+function! s:Player.jump() abort
+  execute 'normal! r kr' . s:PLAYER_CH
+  let self.y -= 1
 endfunction
 
 " }}}
 
-
-" Help window {{{
-
-" class HelpWindow {{{
-
-let s:HelpWindow = { 'name' : '', 'window' : [], 'pos' : [0, 0], 'start' : [0, 0], 'script' : '', 'turn' : 0, 'player' : {} }
-function! s:HelpWindow.new(name, window, start, script) abort
-  let l:ret = deepcopy(s:HelpWindow)
-  let l:ret.name   = a:name
-  let l:ret.window = a:window
-  let l:ret.start  = a:start
-  let l:ret.script = a:script
-
-  " player position is a relative position from upper-left of window
-  let l:ret.player = s:Player.new(a:start[0], a:start[1])
-
-  return l:ret
-endfunction
-
-function! s:HelpWindow.set_pos(row, col) abort
-  let self.pos[0] = a:row
-  let self.pos[1] = a:col
-endfunction
-
-function! s:HelpWindow.move() abort
-  call cursor(self.player.y+self.pos[0], self.player.x+self.pos[1])
-  if (self.turn >= len(self.script))
-    let self.turn = 0
-    execute 'normal! r '
-    let self.player.x = self.start[1]
-    let self.player.y = self.start[0]
-    call cursor(self.player.y+self.pos[0], self.player.x+self.pos[0])
-    execute 'normal! r' . s:PLAYER_CH
-  else
-    let l:key = self.script[self.turn]
-    call self.player.key_event(l:key)
-    let self.turn += 1
-  endif
-endfunction
-" }}}
-
-" class HelpWindowManager {{{
-
-" window is a dictionary which has following keys:
-"   name   : Window name
-"   window : A list of string.
-"   start  : Player initial position. [ row, col ]. upper-left is [0, 0]
-"   script : Player moves following this script
-let s:HelpWindowManager = { 'windows' : {} }
-function! s:HelpWindowManager.add_window(name, window) abort
-  let self.windows[a:name] = s:HelpWindow.new(a:window.name, a:window.window, a:window.start, a:window.script)
-endfunction
-
-function! s:HelpWindowManager.get_window(name) abort
-  return self.windows[a:name]
-endfunction
-
-" }}}
-
-"}}}
-
-" Hilight {{{
-
-" ['h', 'j', 'k', 'l']
-let s:save_ch = []
-
-function! s:set_hilight_ch() abort
-  let l:arrows = {'h' : '<', 'j' : 'v', 'k' : '^', 'l' : '>'}
-  for l:dir in ['h', 'j', 'k', 'l']
-    let l:ch = s:getchar_on(l:dir)
-    call add(s:save_ch, l:ch)
-    if l:dir =~# '[hkl]'
-      if !s:is_block(l:ch) && l:ch !=# s:PLAYER_CH && l:ch !=# 'G'
-        call s:setchar_on(l:dir, l:arrows[l:dir])
-      endif
-    else
-      if s:getchar_on_cursor() !=# s:PLAYER_CH && l:ch !=# '#' && l:ch !=# s:PLAYER_CH && l:ch !=# 'G'
-        call s:setchar_on(l:dir, l:arrows[l:dir])
-      endif
-    endif
-  endfor
-endfunction
-
-function! s:reset_hilight_ch() abort
-  if s:save_ch == []
-    return
-  endif
-
-  call s:setchar_on('h', s:save_ch[0])
-  call s:setchar_on('j', s:save_ch[1])
-  call s:setchar_on('k', s:save_ch[2])
-  call s:setchar_on('l', s:save_ch[3])
-  let s:save_ch = []
-endfunction
-
-" }}}
 
 " Utility {{{
+
+function! s:genblocks_fall_if_possible() abort
+  if s:exist_genblocks()
+    while s:can_fall()
+      call s:move_down_gen_blocks()
+    endwhile
+  endif
+endfunction
 
 function! s:replace(str) abort
   let l:pos = getpos('.')
@@ -425,8 +380,6 @@ endfunction
 function! s:move_cursor_to_start() abort
   execute 'normal! gg0'
   call search('S', 'W')
-  let s:player_pos[0] = line('.')
-  let s:player_pos[1] = col('.')
 endfunction
 
 function! s:reverse_dir(dir) abort
@@ -484,6 +437,267 @@ endfunction
 
 " }}}
 
+
+" Help window {{{
+
+" class HelpWindow {{{
+
+let s:HelpWindow = { 'name' : '', 'window' : [], 'pos' : [0, 0], 'start' : [0, 0], 'script' : '', 'turn' : 0, 'player' : {} }
+function! s:HelpWindow.new(name, window, start, script) abort
+  let l:ret = deepcopy(s:HelpWindow)
+  let l:ret.name   = a:name
+  let l:ret.window = a:window
+  let l:ret.start  = a:start
+  let l:ret.script = a:script
+
+  " player position is a relative position from upper-left of window
+  let l:ret.player = s:Player.new(a:start[0], a:start[1])
+
+  return l:ret
+endfunction
+
+function! s:HelpWindow.set_pos(row, col) abort
+  let self.pos[0] = a:row
+  let self.pos[1] = a:col
+endfunction
+
+function! s:HelpWindow.move() abort
+  call cursor(self.player.y+self.pos[0], self.player.x+self.pos[1])
+  if (self.turn >= len(self.script))
+    let self.turn = 0
+    execute 'normal! r '
+    let self.player.x = self.start[1]
+    let self.player.y = self.start[0]
+    call cursor(self.player.y+self.pos[0], self.player.x+self.pos[0])
+    execute 'normal! r' . s:PLAYER_CH
+  else
+    let l:key = self.script[self.turn]
+    call self.player.move(l:key)
+    let self.turn += 1
+  endif
+endfunction
+" }}}
+
+" class HelpWindowManager {{{
+
+" window is a dictionary which has following keys:
+"   name   : Window name
+"   window : A list of string.
+"   start  : Player initial position. [ row, col ]. upper-left is [0, 0]
+"   script : Player moves following this script
+let s:HelpWindowManager = { 'windows' : {} }
+function! s:HelpWindowManager.add_window(name, window) abort
+  let self.windows[a:name] = s:HelpWindow.new(a:window.name, a:window.window, a:window.start, a:window.script)
+endfunction
+
+function! s:HelpWindowManager.get_window(name) abort
+  return self.windows[a:name]
+endfunction
+
+" }}}
+
+"}}}
+
+" class Drawer {{{
+
+let s:Drawer = {}
+function! s:Drawer.draw_stage(stage) abort
+  call setline(1, a:stage.get_data())
+endfunction
+
+function! s:Drawer.draw_information() abort
+  let s:stage_bottom_line = line('$')
+  call setline(line('$')+1, '')
+  call setline(line('$')+1, s:room.name . ': ' . s:stage.id)
+  call setline(line('$')+1, 'MAX GENERATE LENGTH: ' . s:stage.get_gen_length_max())
+  call setline(line('$')+1, '')
+  for l:line in s:users_guide
+    call setline(line('$')+1, l:line)
+  endfor
+endfunction
+
+function! s:Drawer.draw_appriciate() abort
+  call setline(1, 'Thank you for playing')
+  call setline(2, '')
+  call setline(3, 'Press any key to finish this game')
+endfunction
+
+" (row, col) is the upper-left corner.
+function! s:Drawer.draw_help_window(help_window, row, col) abort
+  call cursor(a:row, a:col)
+  for l:line in a:help_window.window
+    call s:replace(l:line)
+    execute 'normal! j'
+  endfor
+endfunction
+
+" }}}
+
+" class MovableObjectsManager {{{
+
+" All registered objects MUST have move().
+let s:MovableObjectsManager = { 'objects' : [] }
+function! s:MovableObjectsManager.add(object) abort
+  call add(self.objects, a:object)
+endfunction
+
+function! s:MovableObjectsManager.clear() abort
+  let self.objects = []
+endfunction
+
+" All registered objects invoke move()
+function! s:MovableObjectsManager.move() abort
+  for l:obj in self.objects
+    call l:obj.move()
+  endfor
+endfunction
+
+" }}}
+
+" Key event {{{
+
+function! s:right() abort
+  let s:player.prev_dir = 'l'
+  if s:is_movable('l')
+    execute 'normal! r lr' . s:PLAYER_CH
+    let s:player.x += 1
+  endif
+endfunction
+
+function! s:left() abort
+  let s:player.prev_dir = 'h'
+  if s:is_movable('h')
+    execute 'normal! r hr' . s:PLAYER_CH
+    let s:player.x -= 1
+  endif
+endfunction
+
+function! s:down() abort
+  if s:is_block(s:getchar_on('j'))
+    return
+  endif
+
+  while !s:is_block(s:getchar_on('j'))
+    sleep 250m
+    execute 'normal! r jr' . s:PLAYER_CH
+    let s:player.y += 1
+    redraw!
+  endwhile
+  sleep 150m
+endfunction
+
+function! s:jump() abort
+  if !s:is_block(s:getchar_on('j'))
+    return
+  endif
+
+  let jmp_count = 1
+  while jmp_count > 0
+    if s:is_movable('k')
+      execute 'normal! r kr' . s:PLAYER_CH
+      let s:player.y -= 1
+      let jmp_count -= 1
+    else
+      break
+    endif
+  endwhile
+  if s:player.prev_dir ==# 'l'
+    call s:right()
+  else
+    call s:left()
+  endif
+  redraw!
+  sleep 50m
+endfunction
+
+function! s:hook_shot() abort
+  let line = getline('.')
+  if s:player.prev_dir ==# 'l'
+    if match(line[col('.')-1:], 'A\s*O') != -1
+      execute 'normal! r '
+      execute 'normal! tOr' . s:PLAYER_CH
+      let s:player.x = col('.')
+    endif
+  else
+    if match(line[:col('.')-1], 'O\s*A') != -1
+      execute 'normal! r '
+      execute 'normal! TOr' . s:PLAYER_CH
+      let s:player.x = col('.')
+    endif
+  endif
+endfunction
+
+function! s:erase_blocks() abort
+  let tmp_pos = getpos('.')
+  execute 'normal! gg0'
+  if search('#', 'W')
+    silent %substitute/#/ /g
+  endif
+  call setpos('.', tmp_pos)
+endfunction
+
+function! s:key_events(key) abort
+  if a:key ==# 't'
+    call s:toggle_mode()
+    return
+  endif
+
+  if s:player.mode " block generate
+    call s:reset_hilight_ch()
+    try
+      if !s:stack.empty() && s:reverse_dir(a:key) ==# s:stack.top()
+        call s:resume_genblock()
+      elseif s:gen_length >= s:stage.get_gen_length_max()
+        return
+      elseif a:key ==# 'h'
+        call s:generate_block('h')
+      elseif a:key ==# 'j'
+        call s:generate_block('j')
+      elseif a:key ==# 'k'
+        call s:generate_block('k')
+      elseif a:key ==# 'l'
+        call s:generate_block('l')
+      endif
+    catch /^Stack.*/
+      echomsg 'key_events:stack is empty'
+    endtry
+    if s:gen_length < s:stage.get_gen_length_max()
+      call s:set_hilight_ch()
+    endif
+  else "player move
+    " TODO: detect some collisions
+    if a:key ==# 'l'
+      call s:player.move('l')
+      call s:down()
+    elseif a:key ==# 'h'
+      call s:player.move('h')
+      call s:down()
+    elseif a:key ==# ' '
+      call s:player.jump()
+      call s:player.move(s:player.prev_dir)
+      call s:down()
+
+      " TODO:
+      " for stop always jump
+      " But ugly code
+      " Hope beautiful code
+      let l:i = getchar(0)
+      while l:i
+        let l:i = getchar(0)
+      endwhile
+      call feedkeys(nr2char(l:i), 't')
+    elseif a:key ==# 'f'
+      call s:hook_shot()
+      call s:down()
+    elseif a:key ==# 'x'
+      call s:erase_blocks()
+      call s:down()
+    endif
+
+    call s:genblocks_fall_if_possible()
+  endif
+endfunction
+"}}}
 
 " Stages {{{
 
@@ -575,215 +789,6 @@ endfunction
 
 " }}}
 
-" Animation {{{
-
-function! s:genblocks_fall_if_possible() abort
-  if s:exist_genblocks()
-    while s:can_fall()
-      call s:move_down_gen_blocks()
-    endwhile
-  endif
-endfunction
-
-" }}}
-
-" class Drawer {{{
-
-let s:Drawer = {}
-function! s:Drawer.draw_stage(stage) abort
-  call setline(1, a:stage.get_data())
-endfunction
-
-function! s:Drawer.draw_information() abort
-  let s:stage_bottom_line = line('$')
-  call setline(line('$')+1, '')
-  call setline(line('$')+1, s:room.name . ': ' . s:stage.id)
-  call setline(line('$')+1, 'MAX GENERATE LENGTH: ' . s:stage.get_gen_length_max())
-  call setline(line('$')+1, '')
-  for l:line in s:users_guide
-    call setline(line('$')+1, l:line)
-  endfor
-endfunction
-
-function! s:Drawer.draw_appriciate() abort
-  call setline(1, 'Thank you for playing')
-  call setline(2, '')
-  call setline(3, 'Press any key to finish this game')
-endfunction
-
-" (row, col) is the upper-left corner.
-function! s:Drawer.draw_help_window(help_window, row, col) abort
-  call cursor(a:row, a:col)
-  for l:line in a:help_window.window
-    call s:replace(l:line)
-    execute 'normal! j'
-  endfor
-endfunction
-
-" }}}
-
-" class MovableObjectsManager {{{
-
-" All registered objects MUST have move().
-let s:MovableObjectsManager = { 'objects' : [] }
-function! s:MovableObjectsManager.add(object) abort
-  call add(self.objects, a:object)
-endfunction
-
-function! s:MovableObjectsManager.clear() abort
-  let self.objects = []
-endfunction
-
-" All registered objects invoke move()
-function! s:MovableObjectsManager.move() abort
-  for l:obj in self.objects
-    call l:obj.move()
-  endfor
-endfunction
-
-" }}}
-
-" Key event {{{
-
-function! s:right() abort
-  let s:previous_dir = 'l'
-  if s:is_movable('l')
-    execute 'normal! r lr' . s:PLAYER_CH
-    let s:player_pos[1] += 1
-  endif
-endfunction
-
-function! s:left() abort
-  let s:previous_dir = 'h'
-  if s:is_movable('h')
-    execute 'normal! r hr' . s:PLAYER_CH
-    let s:player_pos[1] -= 1
-  endif
-endfunction
-
-function! s:down() abort
-  if s:is_block(s:getchar_on('j'))
-    return
-  endif
-
-  while !s:is_block(s:getchar_on('j'))
-    sleep 250m
-    execute 'normal! r jr' . s:PLAYER_CH
-    let s:player_pos[0] += 1
-    redraw!
-  endwhile
-  sleep 150m
-endfunction
-
-function! s:jump() abort
-  if !s:is_block(s:getchar_on('j'))
-    return
-  endif
-
-  let jmp_count = 1
-  while jmp_count > 0
-    if s:is_movable('k')
-      execute 'normal! r kr' . s:PLAYER_CH
-      let s:player_pos[0] -= 1
-      let jmp_count -= 1
-    else
-      break
-    endif
-  endwhile
-  if s:previous_dir ==# 'l'
-    call s:right()
-  else
-    call s:left()
-  endif
-  redraw!
-  sleep 50m
-endfunction
-
-function! s:hook_shot() abort
-  let line = getline('.')
-  if s:previous_dir ==# 'l'
-    if match(line[col('.')-1:], 'A\s*O') != -1
-      execute 'normal! r '
-      execute 'normal! tOr' . s:PLAYER_CH
-      let s:player_pos[1] = col('.')
-    endif
-  else
-    if match(line[:col('.')-1], 'O\s*A') != -1
-      execute 'normal! r '
-      execute 'normal! TOr' . s:PLAYER_CH
-      let s:player_pos[1] = col('.')
-    endif
-  endif
-endfunction
-
-function! s:erase_blocks() abort
-  let tmp_pos = getpos('.')
-  execute 'normal! gg0'
-  if search('#', 'W')
-    silent %substitute/#/ /g
-  endif
-  call setpos('.', tmp_pos)
-endfunction
-
-function! s:key_events(key) abort
-  if a:key ==# 't'
-    call s:toggle_mode()
-    return
-  endif
-  if s:mode " block generate
-    call s:reset_hilight_ch()
-    try
-      if !s:stack.empty() && s:reverse_dir(a:key) ==# s:stack.top()
-        call s:resume_genblock()
-      elseif s:gen_length >= s:stage.get_gen_length_max()
-        return
-      elseif a:key ==# 'h'
-        call s:generate_block('h')
-      elseif a:key ==# 'j'
-        call s:generate_block('j')
-      elseif a:key ==# 'k'
-        call s:generate_block('k')
-      elseif a:key ==# 'l'
-        call s:generate_block('l')
-      endif
-    catch /^Stack.*/
-      echomsg 'key_events:stack is empty'
-    endtry
-    if s:gen_length < s:stage.get_gen_length_max()
-      call s:set_hilight_ch()
-    endif
-  else "player move
-    if a:key ==# 'l'
-      call s:right()
-      call s:down()
-    elseif a:key ==# 'h'
-      call s:left()
-      call s:down()
-    elseif a:key ==# ' '
-      call s:jump()
-      call s:down()
-
-      " for stop always jump
-      " But ugly code
-      " Hope beautiful code
-      let l:i = getchar(0)
-      while l:i
-        let l:i = getchar(0)
-      endwhile
-      call feedkeys(nr2char(l:i), 't')
-    elseif a:key ==# 'f'
-      call s:hook_shot()
-      call s:down()
-    elseif a:key ==# 'x'
-      call s:erase_blocks()
-      call s:down()
-    endif
-
-    call s:genblocks_fall_if_possible()
-  endif
-endfunction
-"}}}
-
 " Main {{{
 
 let s:stage_bottom_line = 0
@@ -793,11 +798,11 @@ let s:frate = 0
 
 function! s:update() abort
   let l:ch = getchar(0)
-  if (l:ch != 0)
-    if (nr2char(l:ch) ==# 'Q')
+  if l:ch != 0
+    if nr2char(l:ch) ==# 'Q'
       return 0
     endif
-    call cursor(s:player_pos[0], s:player_pos[1])
+    call cursor(s:player.y, s:player.x)
     call s:key_events(nr2char(l:ch))
     "if s:stage.check_event(s:player_pos)
     "  let l:event = s:stage.get_event(s:player_pos)
@@ -828,6 +833,8 @@ function! s:update() abort
       let s:goal_pos = getpos('.')
       call s:move_cursor_to_start()
       call s:set_player_to_cursor()
+      let l:pos = getpos('.')
+      let s:player = s:Player.new(l:pos[1], l:pos[2])
       call s:MovableObjectsManager.clear()
     else
       %delete
@@ -882,21 +889,18 @@ function! boxboy#main() abort
   call s:move_cursor_to_start()
   call s:set_player_to_cursor()
 
-  let l:help_window = s:HelpWindowManager.get_window('move_right')
-  call l:help_window.set_pos(2, 2)
-  call s:Drawer.draw_help_window(l:help_window, 2, 2)
-  call s:MovableObjectsManager.add(l:help_window)
-  redraw
-
+  " playable character
+  let l:pos = getpos('.')
+  let s:player = s:Player.new(l:pos[1], l:pos[2])
 
   while 1
+    redraw
     let l:start = reltime()
 
-    if (!s:update())
+    if !s:update()
       break
     endif
     nohl
-    redraw
 
     let l:elapsed = reltime(l:start)
     let l:sec = l:elapsed[0] + l:elapsed[1] / 1000000.0
@@ -907,6 +911,7 @@ function! boxboy#main() abort
 endfunction
 
 " }}}
+
 
 let &cpo = s:save_cpo
 unlet s:save_cpo
