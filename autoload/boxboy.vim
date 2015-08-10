@@ -329,17 +329,17 @@ function! s:search_goal() abort
   return l:ret
 endfunction
 
-function! s:is_stage_with_button() abort
-  return s:stage['button']
-endfunction
-
-function! s:exist_button() abort
-  let l:pos = getpos('.')
-  execute 'normal! gg0'
-  let l:ret = search('_', 'W', s:stage_bottom_line)
-  call setpos('.', l:pos)
-  return l:ret
-endfunction
+"function! s:is_stage_with_button() abort
+"  return s:stage['button']
+"endfunction
+"
+"function! s:exist_button() abort
+"  let l:pos = getpos('.')
+"  execute 'normal! gg0'
+"  let l:ret = search('_', 'W', s:stage_bottom_line)
+"  call setpos('.', l:pos)
+"  return l:ret
+"endfunction
 
 function! s:open_door() abort
   let l:pos = getpos('.')
@@ -355,13 +355,13 @@ endfunction
 
 function! s:check_stage() abort
   if s:search_goal()
-    if s:is_stage_with_button() 
-      if !s:exist_button()
-        call s:open_door()
-      else
-        call s:close_door()
-      endif
-    endif
+    "if s:is_stage_with_button() 
+    "  if !s:exist_button()
+    "    call s:open_door()
+    "  else
+    "    call s:close_door()
+    "  endif
+    "endif
     return 0
   else
     echo 'Clear'
@@ -373,7 +373,8 @@ function! s:check_stage() abort
       return 1
     endif
 
-    let s:stage = s:stage_set[s:current_stage_no]
+    call s:room.next()
+    let s:stage = s:room.get_stage()
     call s:setup_all()
 
     return 1
@@ -583,7 +584,7 @@ function! s:key_events(key) abort
     try
       if !s:stack.empty() && s:reverse_dir(a:key) ==# s:stack.top()
         call s:resume_genblock()
-      elseif s:gen_length >= s:gen_length_max
+      elseif s:gen_length >= s:stage.get_gen_length_max()
         return
       elseif a:key ==# 'h'
         call s:generate_block('h')
@@ -597,7 +598,7 @@ function! s:key_events(key) abort
     catch /^Stack.*/
       echomsg 'key_events:stack is empty'
     endtry
-    if s:gen_length < s:gen_length_max
+    if s:gen_length < s:stage.get_gen_length_max()
       call s:set_hilight_ch()
     endif
   else "player move
@@ -634,14 +635,87 @@ endfunction
 
 " Stages {{{
 
-function! boxboy#add_stage(stage_set_name, stage) abort
-  if !has_key(s:stages, a:stage_set_name)
-    let s:stages[a:stage_set_name] = []
-  endif
-  call add(s:stages[a:stage_set_name], a:stage)
+" class Stage {{{
+
+let s:Stage = { 'id' : -1, 'gen_length_max' : 0, 'stage_data' : [] }
+function! s:Stage.new(id, gen_length_max, stage_data) abort
+  let l:ret = copy(s:Stage)
+  let l:ret.id = a:id
+  let l:ret.gen_length_max = a:gen_length_max
+  let l:ret.stage_data = a:stage_data
+  return l:ret
 endfunction
 
-let s:stages = {}
+function! s:Stage.get_id() abort
+  return self.id
+endfunction
+
+function! s:Stage.get_gen_length_max() abort
+  return self.gen_length_max
+endfunction
+
+function! s:Stage.get_data() abort
+  return self.stage_data
+endfunction
+
+" }}}
+
+" class Room {{{
+
+let s:Room = { 'name' : '', 'idx' : 0, 'stages' : [] }
+function! s:Room.new(name) abort
+  let l:ret = deepcopy(s:Room)
+  let l:ret.name = a:name
+  return l:ret
+endfunction
+
+" A format of a:stage_data is dict type which has following keys:
+"   id         : An id of the stage
+"   gen_length : A genblock length which a player can generate
+"   stage      : A stage data. Type is list
+function! s:Room.add_stage(stage_data)
+  let stage = s:Stage.new(a:stage_data.id, a:stage_data.gen_length, a:stage_data.stage)
+  call add(self.stages, stage)
+endfunction
+
+function! s:Room.get_stage() abort
+  return self.stages[self.idx]
+endfunction
+
+function! s:Room.next() abort
+  let self.idx += 1
+endfunction
+
+" }}}
+
+" class Room Manager {{{
+
+" This class is a singleton
+let s:RoomManager = { 'rooms' : {} }
+function! s:RoomManager.has_room(room_name) abort
+  return has_key(self.rooms, a:room_name)
+endfunction
+
+function! s:RoomManager.create_room(room_name) abort
+  let self.rooms[a:room_name] = s:Room.new(a:room_name)
+endfunction
+
+function! s:RoomManager.get_room(room_name) abort
+  return self.rooms[a:room_name]
+endfunction
+
+function! s:RoomManager.show_roomname() abort
+  PP self.rooms
+endfunction
+
+" }}}
+
+function! boxboy#add_stage(room_name, stage) abort
+  if !s:RoomManager.has_room(a:room_name)
+    call s:RoomManager.create_room(a:room_name)
+  endif
+  call s:RoomManager.get_room(a:room_name).add_stage(a:stage)
+endfunction
 
 let s:boxboy_dir = split(globpath(&runtimepath, 'autoload/boxboy'), '\n')
 let s:stage_set_files = split(glob(s:boxboy_dir[0] . '/*.vim'), '\n')
@@ -651,30 +725,30 @@ endfor
 
 function! s:is_clear() abort
   let l:pos = getpos('.')
-  return (l:pos[0] == s:goal_pos[0]) && (l:pos[1] == s:goal_pos[1])
+  return (l:pos[1] == s:goal_pos[1]) && (l:pos[2] == s:goal_pos[2])
 endfunction
 
 
-function! s:go_to_room(room_name) abort
-  let s:stage_set = s:stages[a:room_name]
-  let s:current_stage_no = 0
-  let s:stage = s:stage_set[s:current_stage_no]
-  call s:draw_stage_and_information()
-  execute 'normal! gg0'
-  call search('G', 'w', s:stage_bottom_line)
-  let s:goal_pos = getpos('.')
-  call s:move_cursor_to_start()
-  call s:set_player_to_cursor()
-endfunction
-
-function! s:go_to_next_stage() abort
-  %delete
-  let s:current_stage_no += 1
-  let s:stage = s:stage_set[s:current_stage_no]
-  call s:draw_stage_and_information()
-  call s:move_cursor_to_start()
-  call s:set_player_to_cursor()
-endfunction
+"function! s:go_to_room(room_name) abort
+"  let s:stage_set = s:stages[a:room_name]
+"  let s:current_stage_no = 0
+"  let s:stage = s:stage_set[s:current_stage_no]
+"  call s:draw_stage_and_information()
+"  execute 'normal! gg0'
+"  call search('G', 'w', s:stage_bottom_line)
+"  let s:goal_pos = getpos('.')
+"  call s:move_cursor_to_start()
+"  call s:set_player_to_cursor()
+"endfunction
+"
+"function! s:go_to_next_stage() abort
+"  %delete
+"  let s:current_stage_no += 1
+"  let s:stage = s:stage_set[s:current_stage_no]
+"  call s:draw_stage_and_information()
+"  call s:move_cursor_to_start()
+"  call s:set_player_to_cursor()
+"endfunction
 
 function! s:get_stage_id() abort
   return s:current_stage_no
@@ -717,26 +791,39 @@ endfunction
 
 " }}}
 
+" class Drawer {{{
+
+let s:Drawer = {}
+function! s:Drawer.draw_stage(stage) abort
+  call setline(1, a:stage.get_data())
+endfunction
+
+function! s:Drawer.draw_information() abort
+  let s:stage_bottom_line = line('$')
+  call setline(line('$')+1, '')
+  call setline(line('$')+1, s:room.name . ': ' . s:stage.id)
+  call setline(line('$')+1, 'MAX GENERATE LENGTH: ' . s:stage.get_gen_length_max())
+  call setline(line('$')+1, '')
+  for l:line in s:users_guide
+    call setline(line('$')+1, l:line)
+  endfor
+endfunction
+
+" }}}
+
 " Main {{{
-
-"let s:default_stage_set_name = '0'
-let s:default_stage_set_name = 'test_play'
-let s:current_stage_no       = 0
-
-let s:stage_set = s:stages[s:default_stage_set_name]
-let s:stage     = s:stage_set[s:current_stage_no]
 
 let s:gen_max        = 0 " the max of generatable blocks
 let s:gen_length_max = 0 " the max length of generating blocks once
 
-let s:nstages = len(s:stage_set)
+"let s:nstages = len(s:stage_set)
 let s:stage_bottom_line = 0
 
 function! s:draw_stage_and_information() abort
-  call setline(1, s:stage['stage'])
+  call setline(1, s:stage.get_data())
   let s:stage_bottom_line = line('$')
   call setline(line('$')+1, '')
-  call setline(line('$')+1, 'MAX GENERATE LENGTH: ' . s:stage['gen_length'])
+  call setline(line('$')+1, 'MAX GENERATE LENGTH: ' . s:stage.get_gen_length_max)
   call setline(line('$')+1, '')
   for l:line in s:users_guide
     call setline(line('$')+1, l:line)
@@ -744,7 +831,7 @@ function! s:draw_stage_and_information() abort
 endfunction
 
 function! s:setup_stage() abort
-  let s:gen_max        = s:stage['gen_max']
+  "let s:gen_max        = s:stage['gen_max']
   let s:gen_length_max = s:stage['gen_length']
   call s:draw_stage_and_information()
 endfunction
@@ -763,7 +850,7 @@ function! s:setup_all() abort
   highlight boxboy_player ctermfg=NONE
   call s:init_player_information()
   call s:setup_stage()
-  call s:save_button_pos()
+  "call s:save_button_pos()
   execute 'normal! gg0'
   call search('G', 'w')
   let s:goal_pos = getpos('.')
@@ -776,18 +863,26 @@ function! s:update() abort
   if (l:ch != 0)
     if (nr2char(l:ch) ==# 'Q')
       return 0
+    elseif (nr2char(l:ch) ==# 'M')
+      call s:RoomManager.show_roomname()
     endif
     call s:key_events(nr2char(l:ch))
   endif
 
   if (s:is_clear())
-    call s:go_to_next_stage()
+    call s:room.next()
+    let s:stage = s:room.get_stage()
+    %delete
+    call s:Drawer.draw_stage(s:stage)
+    call s:Drawer.draw_information()
+    call s:move_cursor_to_start()
+    call s:set_player_to_cursor()
   endif
   return 1
 endfunction
 
 function! s:open_gametab() abort
-  tabnew BoxBoy
+  tabnew boxboy
 endfunction
 
 function! s:close_gametab() abort
@@ -796,12 +891,6 @@ endfunction
 
 function! boxboy#main() abort
   call s:open_gametab()
-
-  augroup BoxBoy " {{{
-    autocmd!
-    autocmd CursorMoved <buffer> call <SID>check_stage()
-  augroup END
-  " }}}
 
   " syntax {{{
   syntax match boxboy_dir /[<^v>]/ contained
@@ -822,7 +911,15 @@ function! boxboy#main() abort
   highlight default link boxboy_space_key boxboy_space_key_hi
   " }}}
 
-  call s:setup_all()
+  let s:default_room_name = 'test_play'
+  let s:room  = s:RoomManager.get_room(s:default_room_name)
+  let s:stage = s:room.get_stage()
+  call s:Drawer.draw_stage(s:stage)
+  call s:Drawer.draw_information()
+  call search('G', 'w')
+  let s:goal_pos = getpos('.')
+  call s:move_cursor_to_start()
+  call s:set_player_to_cursor()
   redraw
   while s:update()
     redraw

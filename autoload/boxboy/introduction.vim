@@ -15,7 +15,7 @@ call boxboy#add_stage('introduction', {
   \ })
 
 call boxboy#add_stage('introduction', {
-  \ 'id'         : 0,
+  \ 'id'         : 1,
   \ 'button'     : 0,
   \ 'gen_max'    : 1,
   \ 'gen_length' : 1,
@@ -31,7 +31,7 @@ call boxboy#add_stage('introduction', {
   \ })
 
 call boxboy#add_stage('introduction', {
-  \ 'id'         : 0,
+  \ 'id'         : 2,
   \ 'button'     : 0,
   \ 'gen_max'    : 3,
   \ 'gen_length' : 3,
