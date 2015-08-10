@@ -42,53 +42,52 @@ let s:users_guide = [
 
 " Help window {{{
 
-" a:pos == [ row, col ]
-function! s:create_help_window(str, pos) abort
-  if a:str ==# 'jump'
-    call s:help_jump(a:pos)
-  endif
+" class HelpWindow {{{
+
+let s:HelpWindow = { 'name' : '', 'window' : [], 'script' : '' }
+function! s:HelpWindow.new(name, window, script) abort
+  let l:ret = copy(s:HelpWindow)
+  let l:ret.name = a:name
+  let l:ret.window = a:window
+  let l:ret.script = a:script
+
+  " TODO: set initial position of player
+
+  return l:ret
+endfunction
+" }}}
+
+" class HelpWindowManager {{{
+
+" window is a dictionary which has following keys:
+"   name   : Window name
+"   window : A list of string.
+"   script : Player moves following this script
+let s:HelpWindowManager = { 'windows' : {} }
+function! s:HelpWindowManager.add_window(name, window) abort
+  let self.windows[a:name] = s:HelpWindow.new(a:window.name, a:window.window, a:window.script)
 endfunction
 
-function! s:help_jump(ver) abort
-  let l:window = [
-    \  '+-----------+',
-    \  '|           |',
-    \  '|     A     |',
-    \  '|===========|',
-    \  '|  [space]  |',
-    \  '+-----------+',
-    \]
-
-
-  let l:pos = getpos('.')
-  execute 'normal! r*'
-
-  call cursor(a:ver)
-  for l:line in l:window
-    call s:replace(l:line)
-    execute 'normal! j'
-  endfor
-  call search('A', 'bw')
-
-  redraw
-  sleep 1
-  "highlight boxboy_space_key_hi ctermfg=darkgray
-  sleep 300m
-  call s:key_events(' ')
-  "highlight boxboy_space_key_hi ctermfg=NONE
-
-  redraw
-  sleep 1
-  "highlight boxboy_space_key_hi ctermfg=darkgray
-  sleep 300m
-  call s:key_events(' ')
-  "highlight boxboy_space_key_hi ctermfg=NONE
-
-  call setpos('.', l:pos)
-  execute 'normal! r' . s:PLAYER_CH
+function! s:HelpWindowManager.get_window(name) abort
+  return self.windows[a:name]
 endfunction
 
 " }}}
+
+call s:HelpWindowManager.add_window('jump', {
+  \ 'name'   : 'jump',
+  \ 'window' : [
+  \   '+-----------+',
+  \   '|           |',
+  \   '|           |',
+  \   '|===========|',
+  \   '|  [space]  |',
+  \   '+-----------+',
+  \ ],
+  \ 'script' : '  ',
+  \})
+
+"}}}
 
 " Hilight {{{
 
@@ -715,6 +714,15 @@ function! s:Drawer.draw_appriciate() abort
   call setline(3, 'Press any key to finish this game')
 endfunction
 
+" (row, col) is the upper-left corner.
+function! s:Drawer.draw_help_window(help_window, row, col) abort
+  call cursor(a:row, a:col)
+  for l:line in a:help_window.window
+    call s:replace(l:line)
+    execute 'normal! j'
+  endfor
+endfunction
+
 " }}}
 
 " Main {{{
@@ -795,9 +803,20 @@ function! boxboy#main() abort
   call s:set_player_to_cursor()
   redraw
 
-  while s:update()
+
+  while 1
+    let l:start = reltime()
+
+    if (!s:update())
+      break
+    endif
     nohl
     redraw
+
+    let l:elapsed = reltime(l:start)
+    let l:sec = l:elapsed[0] + l:elapsed[1] / 1000000.0
+    let l:fps = 1.0 / l:sec
+    call setline(1, string(l:fps))
   endwhile
   call s:close_gametab()
 endfunction
