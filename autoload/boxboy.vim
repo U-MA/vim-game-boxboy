@@ -57,53 +57,6 @@ let s:blocks = [ '=', '#', 'O' ]
 
 " Change view depending on player's mode {{{
 
-" a:mode == 'move' or 'gen'
-function! s:ready_to_switch(mode) abort
-  if a:mode ==# 'move'
-    call s:reset_hilight_ch()
-    execute 'normal! gg0'
-    call search(s:PLAYER_CH, 'w', s:stage_bottom_line)
-    call s:genblocks_fall_if_possible()
-  else
-    call s:player.init_block()
-    call s:erase_blocks()
-    call s:down()
-    call s:set_hilight_ch()
-    call s:stack.clear()
-  endif
-endfunction
-
-" a:mode == 'move' or 'gen'
-function! s:switch_to(mode) abort
-  if a:mode ==# 'move'
-    let s:player.mode = 0
-  else
-    let s:player.mode = 1
-  endif
-endfunction
-
-function! s:toggle_to(mode) abort
-  if a:mode ==# 'move'
-    call s:ready_to_switch('move')
-    call s:switch_to('move')
-    echo 'PLAYER MOVE MODE'
-  else
-    call s:ready_to_switch('gen')
-    call s:switch_to('gen')
-    echo 'BLOCK GENERATE MODE'
-  endif
-endfunction
-
-function! s:toggle_mode() abort
-  if s:player.mode
-    highlight boxboy_player_hi ctermfg=NONE
-    call s:toggle_to('move')
-  else
-    highlight boxboy_player_hi ctermfg=magenta
-    call s:toggle_to('gen')
-  endif
-endfunction
-
 " ['h', 'j', 'k', 'l']
 let s:save_ch = []
 
@@ -280,10 +233,12 @@ endfunction
 function! s:Player.toggle_mode() abort
   if self.mode == 0
     " TOGGLE TO GENERATE BLOCK MODE
+    echo 'GENERATE BLOCK MODE'
     let self.genblock = s:GenBlock.new([self.y, self.x])
     let self.mode = 1
   else
     " TOGGLE TO PLAYER MOVE MODE
+    echo 'PLAYER MOVE MODE'
     let l:pos = s:player.genblock.head
     call cursor(l:pos[0], l:pos[1])
     call s:reset_hilight_ch()
@@ -641,6 +596,7 @@ function! s:process_genmode(key) abort
   call s:reset_hilight_ch()
   try
     if !s:stack.empty() && s:reverse_dir(a:key) ==# s:stack.top()
+      echo 'nonono'
       call s:resume_genblock()
     elseif s:player.genblock.len >= s:stage.get_gen_length_max()
       return
@@ -651,6 +607,7 @@ function! s:process_genmode(key) abort
     elseif a:key ==# 'k'
       call s:player.extend_block('k')
     elseif a:key ==# 'l'
+      echo 'right'
       call s:player.extend_block('l')
     endif
   catch /^Stack.*/
@@ -664,15 +621,18 @@ endfunction
 function! s:process_movemode(key) abort
   " TODO: detect some collisions
   if a:key ==# 'l'
-    call s:player.move('l')
-    call s:down()
+    if s:is_movable('l')
+      call s:player.move('l')
+    endif
   elseif a:key ==# 'h'
-    call s:player.move('h')
-    call s:down()
+    if s:is_movable('h')
+      call s:player.move('h')
+    endif
   elseif a:key ==# ' '
     call s:player.jump()
-    call s:player.move(s:player.prev_dir)
-    call s:down()
+    if s:is_movable(s:player.prev_dir)
+      call s:player.move(s:player.prev_dir)
+    endif
 
     " TODO:
     " for stop always jump
@@ -687,12 +647,9 @@ function! s:process_movemode(key) abort
     if s:can_hook()
       call s:player.hook_shot()
     endif
-    call s:down()
   elseif a:key ==# 'x'
     call s:erase_blocks()
-    call s:down()
   endif
-  call s:genblocks_fall_if_possible()
 endfunction
 
 function! s:key_events(key) abort
@@ -708,9 +665,11 @@ function! s:key_events(key) abort
     " BLOCK GENEREATE MODE
     let l:pos = s:player.genblock.head
     call cursor(l:pos[0], l:pos[1])
+    echo getpos('.')
     call s:process_genmode(a:key)
   else
     " PLAYER MOVE MODE
+    call s:set_cursor_to_player()
     call s:process_movemode(a:key)
   endif
 endfunction
@@ -808,26 +767,45 @@ endfunction
 
 " Main {{{
 
+function! s:set_cursor_to_player() abort
+  call cursor(s:player.y, s:player.x)
+endfunction
 
 let s:FRATE = 5000
 let s:frate = 0
 
+" This function is kernel of this game.
 function! s:update() abort
+
+  " process Player event {{{
   let l:ch = getchar(0)
   if l:ch != 0
     if nr2char(l:ch) ==# 'Q'
       return 0
     endif
-    call cursor(s:player.y, s:player.x)
     call s:key_events(nr2char(l:ch))
   endif
+  " }}}
 
-  if s:frate > s:FRATE
-    call s:MovableObjectsManager.move()
-    let s:frate = 0
+  " Gravity {{{
+  " player mode is PLAYER MOVE MODE
+  if s:player.mode == 0
+    call s:set_cursor_to_player()
+    call s:down()
+    call s:genblocks_fall_if_possible()
   endif
-  let s:frate += 1
+  " }}}
 
+  " Repeat object moves {{{
+  "if s:frate > s:FRATE
+  "  call s:MovableObjectsManager.move()
+  "  let s:frate = 0
+  "endif
+  "let s:frate += 1
+  " }}}
+
+  " Is checking stage clear in update() ?
+  " clear check {{{
   if (s:is_clear())
     if (s:room.has_next())
       call s:room.next()
@@ -849,6 +827,8 @@ function! s:update() abort
       return 0
     endif
   endif
+  " }}}
+
   return 1
 endfunction
 
