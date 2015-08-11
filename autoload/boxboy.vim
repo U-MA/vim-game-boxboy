@@ -561,12 +561,10 @@ function! s:down() abort
   endif
 
   while !s:is_block(s:getchar_on('j'))
-    sleep 250m
     execute 'normal! r jr' . s:PLAYER_CH
     let s:player.y += 1
     redraw!
   endwhile
-  sleep 150m
 endfunction
 
 function! s:erase_blocks() abort
@@ -624,20 +622,12 @@ function! s:process_movemode(key) abort
       call s:player.move('h')
     endif
   elseif a:key ==# ' '
-    call s:player.jump()
+    if s:is_movable('k')
+      call s:player.jump()
+    endif
     if s:is_movable(s:player.prev_dir)
       call s:player.move(s:player.prev_dir)
     endif
-
-    " TODO:
-    " for stop always jump
-    " But ugly code
-    " Hope beautiful code
-    let l:i = getchar(0)
-    while l:i
-      let l:i = getchar(0)
-    endwhile
-    call feedkeys(nr2char(l:i), 't')
   elseif a:key ==# 'f'
     if s:can_hook()
       call s:player.hook_shot()
