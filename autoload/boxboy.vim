@@ -634,6 +634,7 @@ function! s:process_movemode(key) abort
     endif
   elseif a:key ==# 'x'
     call s:erase_blocks()
+    call s:player.init_block()
   endif
 endfunction
 
