@@ -226,7 +226,7 @@ function! s:Player.new(row, col) abort
   let l:ret   = copy(s:Player)
   let l:ret.x = a:col
   let l:ret.y = a:row
-  let l:genblock = s:GenBlock.new([a:row, a:col])
+  let l:ret.genblock = s:GenBlock.new([a:row, a:col])
   return l:ret
 endfunction
 
@@ -431,11 +431,7 @@ function! s:is_movable(dir) abort
 endfunction
 
 function! s:exist_genblocks() abort
-  let l:pos = getpos('.')
-  execute 'normal! gg0'
-  let l:is_exist = search('#', 'W')
-  call setpos('.', l:pos)
-  return l:is_exist
+  return s:player.genblock.len > 0
 endfunction
 
 " }}}
@@ -596,7 +592,6 @@ function! s:process_genmode(key) abort
   call s:reset_hilight_ch()
   try
     if !s:stack.empty() && s:reverse_dir(a:key) ==# s:stack.top()
-      echo 'nonono'
       call s:resume_genblock()
     elseif s:player.genblock.len >= s:stage.get_gen_length_max()
       return
