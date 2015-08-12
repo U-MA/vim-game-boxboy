@@ -132,7 +132,7 @@ function! s:Stack.print() abort
     return
   endif
   for l:i in range(self.head, 0, -1)
-    echo self.data[l:i]
+    "echo self.data[l:i]
   endfor
 endfunction
 
@@ -357,7 +357,7 @@ endfunction
 function! s:lift_down_player_and_gen_blocks() abort
   let l:pos = getpos('.')
   execute 'normal! ' . s:stage_bottom_line . 'G'
-  echo s:stage_bottom_line
+  "echo s:stage_bottom_line
   while search('[A#]', 'bW')
     call s:move_ch_on_cursor_to('j')
   endwhile
@@ -594,14 +594,23 @@ function! s:process_genmode(key) abort
     elseif s:player.genblock.len >= s:stage.get_gen_length_max()
       return
     elseif a:key ==# 'h'
-      call s:player.extend_block('h')
+      let s:player.prev_dir = 'h'
+      if s:is_movable('h') && s:getchar_on('h') != 'G'
+        call s:player.extend_block('h')
+      endif
     elseif a:key ==# 'j'
-      call s:player.extend_block('j')
+      if s:is_movable('j') && s:getchar_on('j') != 'G'
+        call s:player.extend_block('j')
+      endif
     elseif a:key ==# 'k'
-      call s:player.extend_block('k')
+      if s:is_movable('k') && s:getchar_on('k') != 'G'
+        call s:player.extend_block('k')
+      endif
     elseif a:key ==# 'l'
-      echo 'right'
-      call s:player.extend_block('l')
+      let s:player.prev_dir = 'l'
+      if s:is_movable('l') && s:getchar_on('l') != 'G'
+        call s:player.extend_block('l')
+      endif
     endif
   catch /^Stack.*/
     echomsg 'key_events:stack is empty'
@@ -614,10 +623,12 @@ endfunction
 function! s:process_movemode(key) abort
   " TODO: detect some collisions
   if a:key ==# 'l'
+    let s:player.prev_dir = 'l'
     if s:is_movable('l')
       call s:player.move('l')
     endif
   elseif a:key ==# 'h'
+    let s:player.prev_dir = 'h'
     if s:is_movable('h')
       call s:player.move('h')
     endif
@@ -651,7 +662,7 @@ function! s:key_events(key) abort
     " BLOCK GENEREATE MODE
     let l:pos = s:player.genblock.head
     call cursor(l:pos[0], l:pos[1])
-    echo getpos('.')
+    "echo getpos('.')
     call s:process_genmode(a:key)
   else
     " PLAYER MOVE MODE
