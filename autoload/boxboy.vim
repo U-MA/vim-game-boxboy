@@ -805,6 +805,8 @@ endfunction
 let s:FRATE = 5000
 let s:frate = 0
 
+let s:is_sprout_help_window = 0
+
 " This function is kernel of this game.
 function! s:update() abort
 
@@ -821,15 +823,17 @@ function! s:update() abort
   " Sprout help window
   if !s:EventDispatcher.empty()
     let l:window = s:EventDispatcher.get()
-    if s:player.x == l:window.start[1]
+    if s:player.x == l:window.start[1] && s:is_sprout_help_window == 0
       call s:Drawer.draw_help_window(
         \ s:HelpWindowManager.get_window(l:window.name),
         \ l:window.draw_position[0], l:window.draw_position[1])
-    elseif s:player.x == l:window.end[1]
+      let s:is_sprout_help_window = 1
+    elseif s:player.x == l:window.end[1] && s:is_sprout_help_window == 1
       call s:Drawer.erase_help_window(
         \ s:HelpWindowManager.get_window(l:window.name),
         \ l:window.draw_position[0], l:window.draw_position[1])
       call s:MovableObjectsManager.clear()
+      let s:is_sprout_help_window = 0
     endif
   endif
 
