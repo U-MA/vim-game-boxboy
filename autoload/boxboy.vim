@@ -501,13 +501,13 @@ endfunction
 
 let s:Drawer = {}
 function! s:Drawer.draw_stage(stage) abort
-  call setline(1, a:stage.get_data())
+  call setline(1, a:stage.stage())
 endfunction
 
 function! s:Drawer.draw_information() abort
   let s:stage_bottom_line = line('$')
   call setline(line('$')+1, '')
-  call setline(line('$')+1, s:room.name . ': ' . s:stage.id)
+  call setline(line('$')+1, s:room.name . ': ' . s:stage.id())
   call setline(line('$')+1, 'MAX GENERATE LENGTH: ' . s:stage.get_gen_length_max())
   call setline(line('$')+1, '')
   for l:line in s:scripts['user_guide']
@@ -676,25 +676,31 @@ endfunction
 
 " class Stage {{{
 
-let s:Stage = { 'id' : -1, 'gen_length_max' : 0, 'stage_data' : [] }
-function! s:Stage.new(id, gen_length_max, stage_data) abort
-  let l:ret = copy(s:Stage)
-  let l:ret.id = a:id
-  let l:ret.gen_length_max = a:gen_length_max
+let s:Stage = { 'stage_data' : {} }
+function! s:Stage.new(stage_data) abort
+  let l:ret = deepcopy(s:Stage)
   let l:ret.stage_data = a:stage_data
   return l:ret
 endfunction
 
-function! s:Stage.get_id() abort
-  return self.id
+function! s:Stage.has_help_window() abort
+  return has_key(self.stage_data, 'help_window')
+endfunction
+
+function! s:Stage.id() abort
+  return self.stage_data.id
 endfunction
 
 function! s:Stage.get_gen_length_max() abort
-  return self.gen_length_max
+  return self.stage_data.gen_length
 endfunction
 
-function! s:Stage.get_data() abort
-  return self.stage_data
+function! s:Stage.stage() abort
+  return self.stage_data.stage
+endfunction
+
+function! s:Stage.help_window() abort
+  return self.stage_data.help_window
 endfunction
 
 " }}}
@@ -713,7 +719,7 @@ endfunction
 "   gen_length : A genblock length which a player can generate
 "   stage      : A stage data. Type is list
 function! s:Room.add_stage(stage_data)
-  let stage = s:Stage.new(a:stage_data.id, a:stage_data.gen_length, a:stage_data.stage)
+  let stage = s:Stage.new(a:stage_data)
   call add(self.stages, stage)
 endfunction
 
@@ -762,6 +768,23 @@ endfunction
 
 " }}}
 
+" class EventDispatcher {{{
+
+let s:EventDispatcher = { 'data' : {} }
+function! s:EventDispatcher.register(window) abort
+  let self.data = a:window
+endfunction
+
+function! s:EventDispatcher.empty() abort
+  return empty(self.data)
+endfunction
+
+function! s:EventDispatcher.get() abort
+  return self.data
+endfunction
+
+" }}}
+
 " Main {{{
 
 function! s:set_cursor_to_player() abort
@@ -783,6 +806,16 @@ function! s:update() abort
     call s:key_events(nr2char(l:ch))
   endif
   " }}}
+
+  " Sprout help window
+  if !s:EventDispatcher.empty()
+    let l:window = s:EventDispatcher.get()
+    if s:player.x == l:window.start[1]
+      call s:Drawer.draw_help_window(
+        \ s:HelpWindowManager.get_window(l:window.name),
+        \ l:window.draw_position[0], l:window.draw_position[1])
+    endif
+  endif
 
   " Gravity {{{
   " player mode is PLAYER MOVE MODE
@@ -865,6 +898,12 @@ function! boxboy#main() abort
   let s:default_room_name = 'test_play'
   let s:room  = s:RoomManager.get_room(s:default_room_name)
   let s:stage = s:room.get_stage()
+
+  " Register a help window object
+  if s:stage.has_help_window()
+    call s:EventDispatcher.register(s:stage.help_window())
+  endif
+
   call s:Drawer.draw_stage(s:stage)
   call s:Drawer.draw_information()
   call search('G', 'w')
