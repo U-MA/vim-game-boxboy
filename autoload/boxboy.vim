@@ -460,6 +460,7 @@ function! s:HelpWindow.set_pos(row, col) abort
   let self.pos[1] = a:col
 endfunction
 
+let s:is_set_hi = 0
 function! s:HelpWindow.move() abort
   call cursor(self.player.y+self.pos[0], self.player.x+self.pos[1])
   if (self.turn >= len(self.script))
@@ -471,8 +472,19 @@ function! s:HelpWindow.move() abort
     execute 'normal! r' . s:PLAYER_CH
   else
     let l:key = self.script[self.turn]
+    if l:key ==# '*'
+      highlight boxboy_right_key ctermfg=darkgray
+      let s:is_set_hi = 1
+      let self.turn += 1
+      let l:key = self.script[self.turn]
+    endif
     call self.player.move(l:key)
+    redraw
     let self.turn += 1
+    if s:is_set_hi
+      sleep 250m
+      highlight boxboy_right_key ctermfg=NONE
+    endif
   endif
 endfunction
 " }}}

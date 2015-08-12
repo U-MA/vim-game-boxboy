@@ -9,7 +9,7 @@ call boxboy#add_help_window('jump', {
   \   '+-----------+',
   \ ],
   \ 'start'  : [2, 6],
-  \ 'script' : '  ',
+  \ 'script' : '* * ',
   \})
 
 call boxboy#add_help_window('move_right', {
@@ -23,5 +23,5 @@ call boxboy#add_help_window('move_right', {
   \   '+-----------+',
   \ ],
   \ 'start'  : [2, 6],
-  \ 'script' : 'll',
+  \ 'script' : '*l*l',
   \})
