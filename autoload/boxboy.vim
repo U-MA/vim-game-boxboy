@@ -530,6 +530,13 @@ function! s:Drawer.draw_help_window(help_window, row, col) abort
   endfor
 endfunction
 
+function! s:Drawer.erase_help_window(help_window, row, col) abort
+  call cursor(a:row, a:col)
+  for l:line in a:help_window.window
+    execute 'normal! v' . len(l:line) . 'lr j'
+  endfor
+endfunction
+
 " }}}
 
 " class MovableObjectsManager {{{
@@ -779,6 +786,10 @@ function! s:EventDispatcher.empty() abort
   return empty(self.data)
 endfunction
 
+function! s:EventDispatcher.clear() abort
+  let self.data = {}
+endfunction
+
 function! s:EventDispatcher.get() abort
   return self.data
 endfunction
@@ -814,6 +825,10 @@ function! s:update() abort
       call s:Drawer.draw_help_window(
         \ s:HelpWindowManager.get_window(l:window.name),
         \ l:window.draw_position[0], l:window.draw_position[1])
+    elseif s:player.x == l:window.end[1]
+      call s:Drawer.erase_help_window(
+        \ s:HelpWindowManager.get_window(l:window.name),
+        \ l:window.draw_position[0], l:window.draw_position[1])
     endif
   endif
 
@@ -840,6 +855,11 @@ function! s:update() abort
     if (s:room.has_next())
       call s:room.next()
       let s:stage = s:room.get_stage()
+      if s:stage.has_help_window()
+        call s:EventDispatcher.register(s:stage.help_window())
+      else
+        call s:EventDispatcher.clear()
+      endif
       %delete
       call s:Drawer.draw_stage(s:stage)
       call s:Drawer.draw_information()
