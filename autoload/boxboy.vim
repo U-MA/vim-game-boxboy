@@ -829,6 +829,7 @@ function! s:update() abort
       call s:Drawer.erase_help_window(
         \ s:HelpWindowManager.get_window(l:window.name),
         \ l:window.draw_position[0], l:window.draw_position[1])
+      call s:MovableObjectsManager.clear()
     endif
   endif
 
@@ -841,13 +842,11 @@ function! s:update() abort
   endif
   " }}}
 
-  " Repeat object moves {{{
-  "if s:frate > s:FRATE
-  "  call s:MovableObjectsManager.move()
-  "  let s:frate = 0
-  "endif
-  "let s:frate += 1
-  " }}}
+  if s:frate > s:FRATE
+    call s:MovableObjectsManager.move()
+    let s:frate = 0
+  endif
+  let s:frate += 1
 
   " Is checking stage clear in update() ?
   " clear check {{{
@@ -919,9 +918,16 @@ function! boxboy#main() abort
   let s:room  = s:RoomManager.get_room(s:default_room_name)
   let s:stage = s:room.get_stage()
 
-  " Register a help window object
+  " Register a help window to EventDispatcher
   if s:stage.has_help_window()
     call s:EventDispatcher.register(s:stage.help_window())
+
+    " Register a help window to MovableObjectsManager
+    let l:window = s:HelpWindowManager.get_window(s:stage.help_window().name)
+    call l:window.set_pos(s:stage.help_window().draw_position[0],
+      \ s:stage.help_window().draw_position[1])
+    call s:MovableObjectsManager.add(
+      \ s:HelpWindowManager.get_window(s:stage.help_window().name))
   endif
 
   call s:Drawer.draw_stage(s:stage)
