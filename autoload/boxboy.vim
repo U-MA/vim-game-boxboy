@@ -321,7 +321,7 @@ function! s:can_fall() abort
   let l:pos = getpos('.')
   execute 'normal! gg0'
   while search('#', 'W')
-    if s:getchar_on('j') =~# '[=AO]'
+    if s:getchar_on('j') =~# '[=AOG]'
       call setpos('.', l:pos)
       return 0
     endif
