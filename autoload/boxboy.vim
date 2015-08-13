@@ -900,7 +900,9 @@ endfunction
 
 " Callback functions {{{
 
-function! s:cb_go_to_next_stage() abort
+let s:is_draw_hw = 0
+
+function! s:cb_go_to_next_stage() abort " {{{
   %delete
   if (s:room.has_next())
     call s:room.next()
@@ -921,9 +923,9 @@ function! s:cb_go_to_next_stage() abort
     call getchar()
   endif
 endfunction
+" }}}
 
-let s:is_draw_hw = 0
-
+" function! s:cb_open_help_window(help_window, upper_left) abort {{{
 " Draw a help window on upper_left position.
 "   help_window: a drawing window
 function! s:cb_open_help_window(help_window, upper_left) abort
@@ -939,6 +941,7 @@ function! s:cb_close_help_window(help_window, upper_left) abort
     let s:is_draw_hw = 0
   endif
 endfunction
+" }}}
 
 " }}}
 
@@ -1017,6 +1020,108 @@ function! s:setup_view(stage) abort " {{{
   call s:Drawer.draw_information()
 endfunction
 " }}}
+
+" class Action {{{
+
+let s:Action = { 'func_ref' : '', 'args' : [], 'done' : 0 }
+
+function! s:Action.new(func_ref, args) abort
+  let l:action          = copy(s:Action)
+  let l:action.func_ref = function(a:func_ref)
+  let l:action.args     = a:args
+  return l:action
+endfunction
+
+function! s:Action.run() abort
+  call call(self.func_ref, self.args)
+  let self.done = 1
+endfunction
+
+function! s:Action.init() abort
+  let self.done = 0
+endfunction
+
+" }}}
+
+" class Wait {{{
+"   wait_count回run()を呼ぶとdone=1となる
+let s:Wait = { 'wait_count' : 0, 'count' : 0, 'done' : 0 }
+
+function! s:Wait.new(wait_count) abort
+  let l:wait = copy(s:Wait)
+  let l:wait.wait_count = a:wait_count
+  return l:wait
+endfunction
+
+function! s:Wait.run() abort
+  let self.count += 1
+  if self.count >= self.wait_count
+    let self.done = 1
+  endif
+endfunction
+
+function! s:Wait.init() abort
+  let self.done  = 0
+  let self.count = 0
+endfunction
+
+" }}}
+
+" class Sequence {{{
+let s:Sequence = { 'actions' : [], 'idx' : 0 }
+
+function! s:Sequence.new() abort
+  return copy(s:Sequence)
+endfunction
+
+" 登録されているActionを初期化する
+function! s:Sequence.init() abort
+  for l:action in self.actions
+    call l:action.init()
+  endfor
+endfunction
+
+" 次のactionに移動する
+function! s:Sequence.next() abort
+  let self.idx += 1
+
+  " 一周した
+  if self.idx >= len(self.actions)
+    let self.idx = 0
+    call self.init()
+  endif
+endfunction
+
+" Sequenceにactionを登録
+function! s:Sequence.add(action) abort
+  call add(self.actions, a:action)
+endfunction
+
+function! s:Sequence.run() abort
+  let l:action = self.actions[self.idx]
+  call l:action.run()
+  if l:action.done
+    call self.next()
+  endif
+endfunction
+" }}}
+
+" class SequenceManager {{{
+let s:SequenceManager = { 'sequences' : [] }
+
+" sequenceを登録
+function! s:SequenceManager.register(sequence) abort
+  call add(self.sequences, a:sequence)
+endfunction
+
+" 登録されたSequenceを実行
+function! s:SequenceManager.run() abort
+  for l:sequence in self.sequences
+    call l:sequence.run()
+  endfor
+endfunction
+" }}}
+
 
 let &cpo = s:save_cpo
 unlet s:save_cpo
