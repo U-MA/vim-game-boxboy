@@ -942,6 +942,20 @@ endfor
 
 " }}}
 
+function! s:cb_init_help_window(help_window) abort
+  let l:player = a:help_window.player
+  let l:abs_position = [
+    \ a:help_window.pos[0]+l:player.y-1,
+    \ a:help_window.pos[1]+l:player.x-1]
+  call cursor(l:abs_position[0], l:abs_position[1])
+  execute 'normal! r '
+  let l:player.x = a:help_window.start[1]
+  let l:player.y = a:help_window.start[0]
+  call cursor(a:help_window.pos[0]+l:player.y-1,
+    \         a:help_window.pos[1]+l:player.x-1)
+  execute 'normal! rA'
+endfunction
+
 function! s:cb_player_in_window_moves(help_window, player, key) abort
   let l:abs_position = [
     \ a:help_window.pos[0]+a:player.y-1,
@@ -962,7 +976,6 @@ endfunction
 "  h       : player move left
 "  l       : player move right
 "  <space> : player jumps to a previous direction
-"  *       : highlight
 function! s:create_sequence_with_script(help_window) abort
   let l:sequence = s:Sequence.new()
   call l:sequence.add(s:Wait.new(5000))
@@ -983,9 +996,11 @@ function! s:create_sequence_with_script(help_window) abort
         \ s:Action.new('s:cb_player_in_window_moves',
         \ [a:help_window, a:help_window.player, l:ch]))
       call l:sequence.add(s:Wait.new(5000))
-    elseif l:ch ==# '*'
     endif
   endfor
+  call l:sequence.add(
+    \ s:Action.new('s:cb_init_help_window',
+    \ [a:help_window]))
   return l:sequence
 endfunction
 
