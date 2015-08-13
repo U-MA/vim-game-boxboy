@@ -8,12 +8,12 @@ call boxboy#add_help_window('jump', {
   \   '|  [space]  |',
   \   '+-----------+',
   \ ],
-  \ 'start'  : [2, 6],
+  \ 'start'  : [3, 7],
   \ 'script' : '* * ',
   \})
 
 call boxboy#add_help_window('move_right', {
-  \ 'name'   : 'move_right',
+  \ 'name'   : 'right_key',
   \ 'window' : [
   \   '+-----------+',
   \   '|           |',
@@ -22,6 +22,6 @@ call boxboy#add_help_window('move_right', {
   \   '|     l     |',
   \   '+-----------+',
   \ ],
-  \ 'start'  : [2, 6],
+  \ 'start'  : [3, 7],
   \ 'script' : '*l*l',
   \})
