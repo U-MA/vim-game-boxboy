@@ -8,6 +8,7 @@ set cpo&vim
 
 " Public functions {{{
 
+" function! boxboy#add_help_window(name, window_data) abort {{{
 " window_data is a dictionary which has following keys:
 "   name   : a window name
 "   window : a window. value type is list.
@@ -16,7 +17,9 @@ set cpo&vim
 function! boxboy#add_help_window(name, window_data) abort
   call s:HelpWindowManager.add_window(a:name, a:window_data)
 endfunction
+" }}}
 
+" function! boxboy#add_stage(room_name, stage) abort {{{
 " stage is a dictionary which has following keys:
 "   TODO: add discription
 function! boxboy#add_stage(room_name, stage) abort
@@ -25,13 +28,15 @@ function! boxboy#add_stage(room_name, stage) abort
   endif
   call s:RoomManager.get_room(a:room_name).add_stage(a:stage)
 endfunction
+" }}}
 
-function! boxboy#add_script(script_name, script) abort
+function! boxboy#add_script(script_name, script) abort " {{{
   if !has_key(s:scripts, a:script_name)
     let s:scripts[a:script_name] = []
   endif
   call add(s:scripts[a:script_name], a:script)
 endfunction
+" }}}
 
 function! boxboy#main() abort " {{{
   call s:open_gametab()
@@ -877,10 +882,6 @@ function! s:EventDispatcher.register(listener) abort
   call add(self.listeners, a:listener)
 endfunction
 
-function! s:EventDispatcher.empty() abort
-  return empty(self.listeners)
-endfunction
-
 function! s:EventDispatcher.clear() abort
   let self.listeners = []
 endfunction
@@ -994,9 +995,7 @@ function! s:update() abort " {{{
     call s:genblocks_fall_if_possible()
   endif
 
-  if !s:EventDispatcher.empty()
-    call s:EventDispatcher.check()
-  endif
+  call s:EventDispatcher.check()
 
   return 1
 endfunction
