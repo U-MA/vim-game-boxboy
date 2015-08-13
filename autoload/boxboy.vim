@@ -293,6 +293,10 @@ endfunction
 
 " Utility {{{
 
+function! s:set_cursor_to_player() abort
+  call cursor(s:player.y, s:player.x)
+endfunction
+
 function! s:genblocks_fall_if_possible() abort
   if s:exist_genblocks()
     while s:can_fall()
@@ -484,6 +488,7 @@ function! s:HelpWindow.move() abort
     if s:is_set_hi
       sleep 250m
       highlight boxboy_right_key ctermfg=NONE
+      let s:is_set_hi = 0
     endif
   endif
 endfunction
@@ -780,49 +785,122 @@ for s:stage_set_file in s:stage_set_files
   execute 'source ' . s:stage_set_file
 endfor
 
-function! s:is_clear() abort
-  let l:pos = getpos('.')
-  return (l:pos[1] == s:goal_pos[1]) && (l:pos[2] == s:goal_pos[2])
+" }}}
+
+" class EventListenerPlayerReaches {{{
+
+" position: a position which player reaches.
+" func_ref: a calling func_ref which player reaches position
+" args    : arguments for func_ref.
+let s:EventListenerPlayerReaches = {
+  \ 'position' : [0, 0], 'func_ref' : '',
+  \ 'args' : [] }
+
+function! s:EventListenerPlayerReaches.new(position, func_ref, args) abort
+  let l:listener          = copy(s:EventListenerPlayerReaches)
+  let l:listener.position = a:position
+  let l:listener.func_ref = function(a:func_ref)
+  let l:listener.args     = a:args
+  return l:listener
 endfunction
 
 " }}}
 
 " class EventDispatcher {{{
 
-let s:EventDispatcher = { 'data' : {} }
-function! s:EventDispatcher.register(window) abort
-  let self.data = a:window
+let s:EventDispatcher = { 'listeners' : [] }
+function! s:EventDispatcher.register(listener) abort
+  call add(self.listeners, a:listener)
 endfunction
 
 function! s:EventDispatcher.empty() abort
-  return empty(self.data)
+  return empty(self.listeners)
 endfunction
 
 function! s:EventDispatcher.clear() abort
-  let self.data = {}
+  let self.event_list = []
 endfunction
 
-function! s:EventDispatcher.get() abort
-  return self.data
+function! s:EventDispatcher.check() abort
+  for l:listner in self.listeners
+    let l:position = l:listner.position
+    if (l:position[0] == 0 || l:position[0] == s:player.y) &&
+     \ (l:position[1] == 0 || l:position[1] == s:player.x)
+      call call(l:listner.func_ref, l:listner.args)
+    endif
+  endfor
 endfunction
 
 " }}}
 
-" Main {{{
+" Callback functions {{{
 
-function! s:set_cursor_to_player() abort
-  call cursor(s:player.y, s:player.x)
+function! s:cb_go_to_next_stage() abort
+  %delete
+  if (s:room.has_next())
+    call s:room.next()
+    let s:stage = s:room.get_stage()
+
+    call s:Drawer.draw_stage(s:stage)
+    call s:Drawer.draw_information()
+
+    call s:EventDispatcher.clear()
+    call s:setup_events()
+
+    call s:move_cursor_to_start()
+    call s:set_player_to_cursor()
+    let l:pos = getpos('.')
+    let s:player = s:Player.new(l:pos[1], l:pos[2])
+  else
+    call s:Drawer.draw_appriciate()
+    call getchar()
+  endif
 endfunction
 
-let s:FRATE = 5000
-let s:frate = 0
+let s:is_draw_hw = 0
 
-let s:is_sprout_help_window = 0
+" Draw a help window on upper_left position.
+"   help_window: a drawing window
+function! s:cb_draw_help_window(help_window, upper_left) abort
+  if !s:is_draw_hw
+    call s:Drawer.draw_help_window(a:help_window, a:upper_left[0], a:upper_left[1])
+    let s:is_draw_hw = 1
+  endif
+endfunction
 
-" This function is kernel of this game.
-function! s:update() abort
+" }}}
 
-  " process Player event {{{
+function! s:setup_events() abort " {{{
+  " Note: This function assume that a stage already has been drawn.
+
+  " Register a help window to EventDispatcher
+  if s:stage.has_help_window()
+    let l:help_window = s:stage.help_window()
+    let l:window      = s:HelpWindowManager.get_window(l:help_window.name)
+
+    call s:EventDispatcher.register(s:EventListenerPlayerReaches.new(
+      \ l:help_window.start,
+      \ 's:cb_draw_help_window',
+      \ [ l:window, l:help_window.draw_position ]))
+  endif
+
+  " Note: Do not process a stage which dont exist G(goal)
+  execute 'normal! gg0'
+  call search('G', 'w', s:stage_bottom_line)
+  let l:goal_pos = getpos('.')
+  call s:EventDispatcher.register(s:EventListenerPlayerReaches.new(
+    \ l:goal_pos[1:2],
+    \ 's:cb_go_to_next_stage',
+    \ []))
+endfunction
+" }}}
+
+" Main {{{
+
+function! s:update() abort " {{{
+  " This function is kernel of this game.
+
+  " process Player event
   let l:ch = getchar(0)
   if l:ch != 0
     if nr2char(l:ch) ==# 'Q'
@@ -830,72 +908,22 @@ function! s:update() abort
     endif
     call s:key_events(nr2char(l:ch))
   endif
-  " }}}
 
-  " Sprout help window
-  if !s:EventDispatcher.empty()
-    let l:window = s:EventDispatcher.get()
-    if s:player.x == l:window.start[1] && s:is_sprout_help_window == 0
-      call s:Drawer.draw_help_window(
-        \ s:HelpWindowManager.get_window(l:window.name),
-        \ l:window.draw_position[0], l:window.draw_position[1])
-      let s:is_sprout_help_window = 1
-    elseif s:player.x == l:window.end[1] && s:is_sprout_help_window == 1
-      call s:Drawer.erase_help_window(
-        \ s:HelpWindowManager.get_window(l:window.name),
-        \ l:window.draw_position[0], l:window.draw_position[1])
-      call s:MovableObjectsManager.clear()
-      let s:is_sprout_help_window = 0
-    endif
-  endif
-
-  " Gravity {{{
+  " Gravity
   " player mode is PLAYER MOVE MODE
   if s:player.mode == 0
     call s:set_cursor_to_player()
     call s:down()
     call s:genblocks_fall_if_possible()
   endif
-  " }}}
 
-  if s:frate > s:FRATE
-    call s:MovableObjectsManager.move()
-    let s:frate = 0
+  if !s:EventDispatcher.empty()
+    call s:EventDispatcher.check()
   endif
-  let s:frate += 1
-
-  " Is checking stage clear in update() ?
-  " clear check {{{
-  if (s:is_clear())
-    if (s:room.has_next())
-      call s:room.next()
-      let s:stage = s:room.get_stage()
-      if s:stage.has_help_window()
-        call s:EventDispatcher.register(s:stage.help_window())
-      else
-        call s:EventDispatcher.clear()
-      endif
-      %delete
-      call s:Drawer.draw_stage(s:stage)
-      call s:Drawer.draw_information()
-      call search('G', 'w')
-      let s:goal_pos = getpos('.')
-      call s:move_cursor_to_start()
-      call s:set_player_to_cursor()
-      let l:pos = getpos('.')
-      let s:player = s:Player.new(l:pos[1], l:pos[2])
-      call s:MovableObjectsManager.clear()
-    else
-      %delete
-      call s:Drawer.draw_appriciate()
-      call getchar()
-      return 0
-    endif
-  endif
-  " }}}
 
   return 1
 endfunction
+" }}}
 
 function! s:open_gametab() abort
   tabnew boxboy
@@ -903,6 +931,12 @@ endfunction
 
 function! s:close_gametab() abort
   bdelete!
+endfunction
+
+" This function set up a view which game player watches.
+function! s:setup_view(stage) abort
+  call s:Drawer.draw_stage(s:stage)
+  call s:Drawer.draw_information()
 endfunction
 
 function! boxboy#main() abort
@@ -934,29 +968,20 @@ function! boxboy#main() abort
   " }}}
 
   let s:default_room_name = 'test_play'
+
+  " s:room is the current room which player is in.
   let s:room  = s:RoomManager.get_room(s:default_room_name)
+
+  " s:stage is the current stage which player is playing.
   let s:stage = s:room.get_stage()
 
-  " Register a help window to EventDispatcher
-  if s:stage.has_help_window()
-    call s:EventDispatcher.register(s:stage.help_window())
+  call s:setup_view(s:stage)
 
-    " Register a help window to MovableObjectsManager
-    let l:window = s:HelpWindowManager.get_window(s:stage.help_window().name)
-    call l:window.set_pos(s:stage.help_window().draw_position[0],
-      \ s:stage.help_window().draw_position[1])
-    call s:MovableObjectsManager.add(
-      \ s:HelpWindowManager.get_window(s:stage.help_window().name))
-  endif
-
-  call s:Drawer.draw_stage(s:stage)
-  call s:Drawer.draw_information()
-  call search('G', 'w')
-  let s:goal_pos = getpos('.')
-  call s:move_cursor_to_start()
-  call s:set_player_to_cursor()
+  call s:setup_events()
 
   " playable character
+  call s:move_cursor_to_start()
+  call s:set_player_to_cursor()
   let l:pos = getpos('.')
   let s:player = s:Player.new(l:pos[1], l:pos[2])
 
