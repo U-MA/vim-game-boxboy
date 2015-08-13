@@ -33,6 +33,70 @@ function! boxboy#add_script(script_name, script) abort
   call add(s:scripts[a:script_name], a:script)
 endfunction
 
+function! boxboy#main() abort " {{{
+  call s:open_gametab()
+
+  " syntax {{{
+  syntax match boxboy_dir /[<^v>]/ contained
+  syntax match boxboy_block /=/    contained
+  syntax match boxboy_genblock /#/ contained
+  syntax match boxboy_space_key /[space]/ contained
+  syntax match boxboy_right_key /l/ contained
+  syntax match boxboy_player /A/ contained
+
+  syntax region boxboy_stage start=/\%^/ end=/^$/ contains=boxboy_dir,boxboy_block,boxboy_genblock,boxboy_space_key,boxboy_player,boxboy_right_key
+
+  highlight boxboy_dir_hi guibg=blue ctermbg=blue
+  highlight boxboy_block_hi guifg=gray guibg=lightgray ctermfg=gray ctermbg=lightgray
+  highlight boxboy_genblock_hi guifg=gray guibg=darkgray ctermfg=gray ctermbg=darkgray
+  highlight boxboy_space_key_hi ctermfg=NONE
+  highlight boxboy_right_key_hi ctermfg=NONE
+  highlight boxboy_player_hi ctermfg=NONE
+
+  highlight default link boxboy_dir boxboy_dir_hi
+  highlight default link boxboy_block boxboy_block_hi
+  highlight default link boxboy_genblock boxboy_genblock_hi
+  highlight default link boxboy_space_key boxboy_space_key_hi
+  highlight default link boxboy_right_key boxboy_right_key_hi
+  highlight default link boxboy_player boxboy_player_hi
+  " }}}
+
+  let s:default_room_name = '0'
+
+  " s:room is the current room which player is in.
+  let s:room  = s:RoomManager.get_room(s:default_room_name)
+
+  " s:stage is the current stage which player is playing.
+  let s:stage = s:room.get_stage()
+
+  call s:setup_view(s:stage)
+
+  call s:setup_events()
+
+  " playable character
+  call s:move_cursor_to_start()
+  call s:set_player_to_cursor()
+  let l:pos = getpos('.')
+  let s:player = s:Player.new(l:pos[1], l:pos[2])
+
+  while 1
+    redraw
+    let l:start = reltime()
+
+    if !s:update()
+      break
+    endif
+    nohlsearch
+
+    let l:elapsed = reltime(l:start)
+    let l:sec = l:elapsed[0] + l:elapsed[1] / 1000000.0
+    let l:fps = 1.0 / l:sec
+    call setline(s:stage_bottom_line+1, string(l:fps))
+  endwhile
+  call s:close_gametab()
+endfunction
+" }}}
+
 " }}}
 
 
@@ -524,7 +588,7 @@ endfunction
 function! s:Drawer.draw_information() abort
   let s:stage_bottom_line = line('$')
   call setline(line('$')+1, '')
-  call setline(line('$')+1, s:room.name . ': ' . s:stage.id())
+  call setline(line('$')+1, 'STAGE ' . s:room.name . '-' . s:stage.id())
   call setline(line('$')+1, 'MAX GENERATE LENGTH: ' . s:stage.get_gen_length_max())
   call setline(line('$')+1, '')
   for l:line in s:scripts['user_guide']
@@ -910,8 +974,6 @@ function! s:setup_events() abort " {{{
 endfunction
 " }}}
 
-" Main {{{
-
 function! s:update() abort " {{{
   " This function is kernel of this game.
 
@@ -940,85 +1002,22 @@ function! s:update() abort " {{{
 endfunction
 " }}}
 
-function! s:open_gametab() abort
+function! s:open_gametab() abort " {{{
   tabnew boxboy
 endfunction
+" }}}
 
-function! s:close_gametab() abort
+function! s:close_gametab() abort " {{{
   bdelete!
 endfunction
+" }}}
 
-" This function set up a view which game player watches.
-function! s:setup_view(stage) abort
+function! s:setup_view(stage) abort " {{{
+  " This function set up a view which game player watches.
   call s:Drawer.draw_stage(s:stage)
   call s:Drawer.draw_information()
 endfunction
-
-function! boxboy#main() abort
-  call s:open_gametab()
-
-  " syntax {{{
-  syntax match boxboy_dir /[<^v>]/ contained
-  syntax match boxboy_block /=/    contained
-  syntax match boxboy_genblock /#/ contained
-  syntax match boxboy_space_key /[space]/ contained
-  syntax match boxboy_right_key /l/ contained
-  syntax match boxboy_player /A/ contained
-
-  syntax region boxboy_stage start=/\%^/ end=/^$/ contains=boxboy_dir,boxboy_block,boxboy_genblock,boxboy_space_key,boxboy_player,boxboy_right_key
-
-  highlight boxboy_dir_hi guibg=blue ctermbg=blue
-  highlight boxboy_block_hi guifg=gray guibg=lightgray ctermfg=gray ctermbg=lightgray
-  highlight boxboy_genblock_hi guifg=gray guibg=darkgray ctermfg=gray ctermbg=darkgray
-  highlight boxboy_space_key_hi ctermfg=NONE
-  highlight boxboy_right_key_hi ctermfg=NONE
-  highlight boxboy_player_hi ctermfg=NONE
-
-  highlight default link boxboy_dir boxboy_dir_hi
-  highlight default link boxboy_block boxboy_block_hi
-  highlight default link boxboy_genblock boxboy_genblock_hi
-  highlight default link boxboy_space_key boxboy_space_key_hi
-  highlight default link boxboy_right_key boxboy_right_key_hi
-  highlight default link boxboy_player boxboy_player_hi
-  " }}}
-
-  let s:default_room_name = 'test_play'
-
-  " s:room is the current room which player is in.
-  let s:room  = s:RoomManager.get_room(s:default_room_name)
-
-  " s:stage is the current stage which player is playing.
-  let s:stage = s:room.get_stage()
-
-  call s:setup_view(s:stage)
-
-  call s:setup_events()
-
-  " playable character
-  call s:move_cursor_to_start()
-  call s:set_player_to_cursor()
-  let l:pos = getpos('.')
-  let s:player = s:Player.new(l:pos[1], l:pos[2])
-
-  while 1
-    redraw
-    let l:start = reltime()
-
-    if !s:update()
-      break
-    endif
-    nohlsearch
-
-    let l:elapsed = reltime(l:start)
-    let l:sec = l:elapsed[0] + l:elapsed[1] / 1000000.0
-    let l:fps = 1.0 / l:sec
-    call setline(s:stage_bottom_line+1, string(l:fps))
-  endwhile
-  call s:close_gametab()
-endfunction
-
 " }}}
-
 
 let &cpo = s:save_cpo
 unlet s:save_cpo
