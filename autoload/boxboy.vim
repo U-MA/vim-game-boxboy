@@ -1007,12 +1007,12 @@ function! boxboy#main() abort
     if !s:update()
       break
     endif
-    nohl
+    nohlsearch
 
     let l:elapsed = reltime(l:start)
     let l:sec = l:elapsed[0] + l:elapsed[1] / 1000000.0
     let l:fps = 1.0 / l:sec
-    call setline(1, string(l:fps))
+    call setline(s:stage_bottom_line+1, string(l:fps))
   endwhile
   call s:close_gametab()
 endfunction
