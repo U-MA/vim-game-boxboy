@@ -868,6 +868,13 @@ function! s:cb_draw_help_window(help_window, upper_left) abort
   endif
 endfunction
 
+function! s:cb_close_help_window(help_window, upper_left) abort
+  if s:is_draw_hw
+    call s:Drawer.erase_help_window(a:help_window, a:upper_left[0], a:upper_left[1])
+    let s:is_draw_hw = 0
+  endif
+endfunction
+
 " }}}
 
 function! s:setup_events() abort " {{{
@@ -881,6 +888,11 @@ function! s:setup_events() abort " {{{
     call s:EventDispatcher.register(s:EventListenerPlayerReaches.new(
       \ l:help_window.start,
       \ 's:cb_draw_help_window',
+      \ [ l:window, l:help_window.draw_position ]))
+
+    call s:EventDispatcher.register(s:EventListenerPlayerReaches.new(
+      \ l:help_window.end,
+      \ 's:cb_close_help_window',
       \ [ l:window, l:help_window.draw_position ]))
   endif
 
