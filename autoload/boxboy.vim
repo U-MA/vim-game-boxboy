@@ -818,7 +818,7 @@ function! s:EventDispatcher.empty() abort
 endfunction
 
 function! s:EventDispatcher.clear() abort
-  let self.event_list = []
+  let self.listeners = []
 endfunction
 
 function! s:EventDispatcher.check() abort
@@ -844,7 +844,6 @@ function! s:cb_go_to_next_stage() abort
     call s:Drawer.draw_stage(s:stage)
     call s:Drawer.draw_information()
 
-    call s:EventDispatcher.clear()
     call s:setup_events()
 
     call s:move_cursor_to_start()
@@ -852,6 +851,7 @@ function! s:cb_go_to_next_stage() abort
     let l:pos = getpos('.')
     let s:player = s:Player.new(l:pos[1], l:pos[2])
   else
+    call s:EventDispatcher.clear()
     call s:Drawer.draw_appriciate()
     call getchar()
   endif
@@ -861,7 +861,7 @@ let s:is_draw_hw = 0
 
 " Draw a help window on upper_left position.
 "   help_window: a drawing window
-function! s:cb_draw_help_window(help_window, upper_left) abort
+function! s:cb_open_help_window(help_window, upper_left) abort
   if !s:is_draw_hw
     call s:Drawer.draw_help_window(a:help_window, a:upper_left[0], a:upper_left[1])
     let s:is_draw_hw = 1
@@ -880,6 +880,9 @@ endfunction
 function! s:setup_events() abort " {{{
   " Note: This function assume that a stage already has been drawn.
 
+  " Clear all listeners which have already been registered.
+  call s:EventDispatcher.clear()
+
   " Register a help window to EventDispatcher
   if s:stage.has_help_window()
     let l:help_window = s:stage.help_window()
@@ -887,7 +890,7 @@ function! s:setup_events() abort " {{{
 
     call s:EventDispatcher.register(s:EventListenerPlayerReaches.new(
       \ l:help_window.start,
-      \ 's:cb_draw_help_window',
+      \ 's:cb_open_help_window',
       \ [ l:window, l:help_window.draw_position ]))
 
     call s:EventDispatcher.register(s:EventListenerPlayerReaches.new(
