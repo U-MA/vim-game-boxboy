@@ -41,8 +41,8 @@ endfunction
 function! s:EventDispatcher.check() abort
   for l:listner in self.listeners
     let l:position = l:listner.position
-    if (l:position[0] == 0 || l:position[0] == s:player.y) &&
-     \ (l:position[1] == 0 || l:position[1] == s:player.x)
+    if (l:position[0] == 0 || l:position[0] == s:player.position[0]) &&
+     \ (l:position[1] == 0 || l:position[1] == s:player.position[1])
       call call(l:listner.func_ref, l:listner.args)
     endif
   endfor
@@ -298,14 +298,39 @@ endfunction
 
 " class GenBlock {{{
 
+" Note: parent_position is read only
+
 " start is [ row, col ]
-let s:GenBlock = { 'start' : [0, 0], 'dirctions' : {}, 'head' : [0, 0], 'len' : 0 }
-function! s:GenBlock.new(start) abort
-  let l:ret = deepcopy(s:GenBlock)
-  let l:ret.start = copy(a:start)
-  let l:ret.directions = s:Stack.new()
-  return l:ret
+let s:GenBlock = { 'position' : [0, 0], 'dirctions' : {}, 'head' : [0, 0],
+                 \ 'length' : 0, 'parent_position' : [1, 1] }
+function! s:GenBlock.new(position, parent_position) abort
+  let l:genblock                 = deepcopy(s:GenBlock)
+  let l:genblock.position        = copy(a:position)
+  let l:genblock.directions      = s:Stack.new()
+  let l:genblock.parent_position = a:parent_position
+  return l:genblock
 endfunction
+
+function! s:GenBlock.extend(dir) abort
+  call cursor(self.parent_position[0] + self.position[0] + self.head[0] - 1,
+    \         self.parent_position[1] + self.position[1] + self.head[1] - 1)
+  execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
+  call self.move_head(a:dir)
+  call self.directions.push(a:dir)
+  let self.length += 1
+endfunction
+
+function! s:GenBlock.shrink() abort
+  let l:rev = { 'h' : 'l', 'j' : 'k', 'k' : 'j', 'l' : 'h' }
+  let l:ch = l:rev[self.directions.pop()]
+  call cursor(self.parent_position[0] + self.position[0] + self.head[0] - 1,
+    \         self.parent_position[1] + self.position[1] + self.head[1] - 1)
+  execute 'normal! r ' . l:ch
+  call self.move_head(l:ch)
+  let self.length -= 1
+endfunction
+
+" class GenBlock private functions {{{
 
 function! s:GenBlock.move_head(dir) abort
   if a:dir ==# 'h'
@@ -319,36 +344,7 @@ function! s:GenBlock.move_head(dir) abort
   endif
 endfunction
 
-function! s:genblock_move_cursor(head) abort
-  if a:head[0] > 0
-    execute 'normal! ' . a:head[0] . 'j'
-  elseif a:head[0] < 0
-    execute 'normal! ' . a:head[0] . 'k'
-  endif
-  
-  if a:head[1] > 0
-    execute 'normal! ' . a:head[1] . 'l'
-  elseif a:head[1] < 0
-    execute 'normal! ' . a:head[1] . 'h'
-  endif
-endfunction
-
-function! s:GenBlock.extend(dir) abort
-  call s:genblock_move_cursor(self.head)
-  execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
-  call self.move_head(a:dir)
-  call self.directions.push(a:dir)
-  let self.len += 1
-endfunction
-
-function! s:GenBlock.shrink() abort
-  let l:rev = { 'h' : 'l', 'j' : 'k', 'k' : 'j', 'l' : 'h' }
-  let l:ch = l:rev[self.directions.pop()]
-  call cursor(self.head[0], self.head[1])
-  execute 'normal! r ' . l:ch
-  call self.move_head(l:ch)
-  let self.len -= 1
-endfunction
+" }}}
 
 " }}}
 
@@ -362,26 +358,25 @@ endfunction
 "   mode 1 is BLOCK GENERATE MODE
 " prev_dir is a direction which player move to previously
 " genblock is GenBlock class
-let s:Player = { 'x' : 0, 'y' : 0 , 'mode' : 0, 'prev_dir' : 'l', 'genblock' : {} }
-function! s:Player.new(row, col) abort
-  let l:ret   = deepcopy(s:Player)
-  let l:ret.x = a:col
-  let l:ret.y = a:row
-  let l:ret.genblock = s:GenBlock.new([a:row, a:col])
-  return l:ret
+let s:Player = { 'position' : [1, 1] , 'mode' : 0, 'prev_dir' : 'l', 'genblock' : {} }
+function! s:Player.new(position) abort
+  let l:player          = deepcopy(s:Player)
+  let l:player.position = copy(a:position)
+  let l:player.genblock = s:GenBlock.new(copy(a:position), l:player.position)
+  return l:player
 endfunction
 
 function! s:Player.toggle_mode() abort
   if self.mode == 0
     " TOGGLE TO GENERATE BLOCK MODE
     echo 'GENERATE BLOCK MODE'
-    let self.genblock = s:GenBlock.new([self.y, self.x])
+    let self.genblock = s:GenBlock.new(copy(self.position), self.position)
     let self.mode = 1
   else
     " TOGGLE TO PLAYER MOVE MODE
     echo 'PLAYER MOVE MODE'
-    let l:pos = s:player.genblock.head
-    call cursor(l:pos[0], l:pos[1])
+    call cursor(self.position[0] + self.genblock.position[0] - 1,
+      \         self.position[1] + self.genblock.position[1] - 1)
     call s:reset_hilight_ch()
     let self.mode = 0
   endif
@@ -391,15 +386,15 @@ endfunction
 function! s:Player.move(dir) abort
   if a:dir ==# 'h'
     execute 'normal! r hr' . s:PLAYER_CH
-    let self.x -= 1
+    let self.position[1] -= 1
     let self.prev_dir = a:dir
   elseif a:dir ==# 'l'
     execute 'normal! r lr' . s:PLAYER_CH
-    let self.x += 1
+    let self.position[1] += 1
     let self.prev_dir = a:dir
   elseif a:dir ==# ' '
     execute 'normal! r kr' . s:PLAYER_CH
-    let self.y -= 1
+    let self.position[0] -= 1
     call self.move(self.prev_dir)
   endif
 endfunction
@@ -407,23 +402,23 @@ endfunction
 " Player jumps up.
 function! s:Player.jump() abort
   execute 'normal! r kr' . s:PLAYER_CH
-  let self.y -= 1
+  let self.position[0] -= 1
 endfunction
 
 " Player hookshots before 'O'
 function! s:Player.hook_shot() abort
-  if s:player.prev_dir ==# 'l'
+  if self.prev_dir ==# 'l'
     execute 'normal! r '
     execute 'normal! tOr' . s:PLAYER_CH
   else
     execute 'normal! r '
     execute 'normal! TOr' . s:PLAYER_CH
   endif
-  let s:player.x = col('.')
+  let self.position[1] = col('.')
 endfunction
 
 function! s:Player.init_block() abort
-  let self.genblock = s:GenBlock.new([self.y, self.x])
+  let self.genblock = s:GenBlock.new(copy(self.position), self.position)
 endfunction
 
 function! s:Player.extend_block(dir) abort
@@ -440,7 +435,7 @@ endfunction
 " Utility {{{
 
 function! s:set_cursor_to_player() abort
-  call cursor(s:player.y, s:player.x)
+  call cursor(s:player.position[0], s:player.position[1])
 endfunction
 
 function! s:genblocks_fall_if_possible() abort
@@ -581,7 +576,7 @@ function! s:is_movable(dir) abort
 endfunction
 
 function! s:exist_genblocks() abort
-  return s:player.genblock.len > 0
+  return s:player.genblock.length > 0
 endfunction
 
 " }}}
@@ -600,7 +595,7 @@ function! s:HelpWindow.new(name, window, start, script) abort
   let l:ret.script = a:script
 
   " player position is a relative position from upper-left of window
-  let l:ret.player = s:Player.new(a:start[0], a:start[1])
+  let l:ret.player = s:Player.new(copy(a:start))
   echomsg string(l:ret.player.genblock.head)
 
   return l:ret
@@ -611,34 +606,6 @@ function! s:HelpWindow.set_pos(row, col) abort
   let self.pos[1] = a:col
 endfunction
 
-let s:is_set_hi = 0
-function! s:HelpWindow.move() abort
-  call cursor(self.player.y+self.pos[0], self.player.x+self.pos[1])
-  if (self.turn >= len(self.script))
-    let self.turn = 0
-    execute 'normal! r '
-    let self.player.x = self.start[1]
-    let self.player.y = self.start[0]
-    call cursor(self.player.y+self.pos[0], self.player.x+self.pos[0])
-    execute 'normal! r' . s:PLAYER_CH
-  else
-    let l:key = self.script[self.turn]
-    if l:key ==# '*'
-      highlight boxboy_right_key ctermfg=darkgray
-      let s:is_set_hi = 1
-      let self.turn += 1
-      let l:key = self.script[self.turn]
-    endif
-    call self.player.move(l:key)
-    redraw
-    let self.turn += 1
-    if s:is_set_hi
-      sleep 250m
-      highlight boxboy_right_key ctermfg=NONE
-      let s:is_set_hi = 0
-    endif
-  endif
-endfunction
 " }}}
 
 " class HelpWindowManager {{{
@@ -712,7 +679,7 @@ function! s:down() abort
 
   while !s:is_block(s:getchar_on('j'))
     execute 'normal! r jr' . s:PLAYER_CH
-    let s:player.y += 1
+    let s:player.position[0] += 1
     redraw!
   endwhile
 endfunction
@@ -739,7 +706,7 @@ endfunction
 function! s:process_genmode(key) abort
   call s:reset_hilight_ch()
   try
-    if s:player.genblock.len >= s:stage.get_gen_length_max()
+    if s:player.genblock.length >= s:stage.get_gen_length_max()
       return
     elseif a:key ==# 'h'
       let s:player.prev_dir = 'h'
@@ -939,8 +906,8 @@ endfunction
 
 function! s:cb_player_in_window_moves(help_window, player, key) abort " {{{
   let l:abs_position = [
-    \ a:help_window.pos[0]+a:player.y-1,
-    \ a:help_window.pos[1]+a:player.x-1]
+    \ a:help_window.pos[0]+a:player.position[0]-1,
+    \ a:help_window.pos[1]+a:player.position[1]-1]
   call cursor(l:abs_position[0], l:abs_position[1])
   call a:player.move(a:key)
 endfunction
@@ -948,8 +915,8 @@ endfunction
 
 function! s:cb_player_generate_block(help_window, player, key) abort
   let l:abs_position = [
-    \ a:help_window.pos[0]+a:player.y-1,
-    \ a:help_window.pos[1]+a:player.x-1]
+    \ a:help_window.pos[0]+a:player.position[0]-1,
+    \ a:help_window.pos[1]+a:player.position[1]-1]
   call cursor(l:abs_position[0], l:abs_position[1])
   call a:player.extend_block(a:key)
 endfunction
@@ -1043,7 +1010,7 @@ function! s:cb_go_to_next_stage() abort " {{{
     call s:move_cursor_to_start()
     call s:set_player_to_cursor()
     let l:pos = getpos('.')
-    let s:player = s:Player.new(l:pos[1], l:pos[2])
+    let s:player = s:Player.new(copy(l:pos[1:2]))
   else
     call s:EventDispatcher.clear()
     call s:Drawer.draw_appriciate()
@@ -1205,7 +1172,7 @@ function! s:boxboy_main() abort " {{{
   highlight default link boxboy_player boxboy_player_hi
   " }}}
 
-  let s:default_room_name = 'test_play'
+  let s:default_room_name = '0'
 
   " s:room is the current room which player is in.
   let s:room  = s:RoomManager.get_room(s:default_room_name)
@@ -1221,7 +1188,7 @@ function! s:boxboy_main() abort " {{{
   call s:move_cursor_to_start()
   call s:set_player_to_cursor()
   let l:pos = getpos('.')
-  let s:player = s:Player.new(l:pos[1], l:pos[2])
+  let s:player = s:Player.new(copy(l:pos[1:2]))
 
   while 1
     redraw
