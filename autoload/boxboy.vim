@@ -246,9 +246,15 @@ endfunction
 
 " }}}
 
-" Stack {{{
-" Stack size is 10
+" class Stack {{{
+" Note: Stack size is 10
+
 let s:Stack = { 'data': [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ], 'head': -1 }
+
+function! s:Stack.new() abort
+  return copy(s:Stack)
+endfunction
+
 function! s:Stack.push(a) abort
   let self.head += 1
   let self.data[self.head] = a:a
@@ -285,13 +291,9 @@ function! s:Stack.print() abort
     return
   endif
   for l:i in range(self.head, 0, -1)
-    "echo self.data[l:i]
   endfor
 endfunction
 
-function! s:NewStack() abort
-  return deepcopy(s:Stack)
-endfunction
 " }}}
 
 " class GenBlock {{{
@@ -301,7 +303,7 @@ let s:GenBlock = { 'start' : [0, 0], 'dirctions' : {}, 'head' : [0, 0], 'len' : 
 function! s:GenBlock.new(start) abort
   let l:ret = deepcopy(s:GenBlock)
   let l:ret.start = copy(a:start)
-  let l:ret.directions = s:NewStack()
+  let l:ret.directions = s:Stack.new()
   return l:ret
 endfunction
 
