@@ -246,8 +246,6 @@ endfunction
 
 " }}}
 
-" Block generater{{{
-
 " Stack {{{
 " Stack size is 10
 let s:Stack = { 'data': [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ], 'head': -1 }
@@ -348,33 +346,6 @@ function! s:GenBlock.shrink() abort
   execute 'normal! r ' . l:ch
   call self.move_head(l:ch)
   let self.len -= 1
-endfunction
-
-" }}}
-
-let s:stack = s:NewStack()
-
-function! s:resume_genblock() abort
-  try
-    if !s:stack.empty()
-      if s:stack.top() =~# '[hkl]'
-        execute 'normal! r ' . s:reverse_dir(s:stack.top())
-        call s:stack.pop()
-      else
-        execute 'normal! r '
-        if !s:is_on_ground()
-          call s:lift_down_player_and_gen_blocks()
-        else
-          execute 'normal! r ' . s:reverse_dir(s:stack.top())
-        endif
-        call s:stack.pop()
-      endif
-      redraw
-      let s:gen_length -= 1
-    endif
-  catch /^Stack.*/
-    echomsg 'Stack is empty'
-  endtry
 endfunction
 
 " }}}
@@ -787,9 +758,7 @@ endfunction
 function! s:process_genmode(key) abort
   call s:reset_hilight_ch()
   try
-    if !s:stack.empty() && s:reverse_dir(a:key) ==# s:stack.top()
-      call s:resume_genblock()
-    elseif s:player.genblock.len >= s:stage.get_gen_length_max()
+    if s:player.genblock.len >= s:stage.get_gen_length_max()
       return
     elseif a:key ==# 'h'
       let s:player.prev_dir = 'h'
