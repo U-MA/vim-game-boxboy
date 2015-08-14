@@ -838,6 +838,9 @@ function! s:key_events(key) abort
     call s:player.toggle_mode()
     if s:player.mode
       call s:erase_blocks()
+      call s:set_hilight_ch()
+    else
+      call s:reset_hilight_ch()
     endif
     return
   endif
