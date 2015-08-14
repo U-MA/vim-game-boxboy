@@ -930,17 +930,10 @@ endfunction
 " Callback functions {{{
 
 function! s:cb_init_help_window(help_window) abort " {{{
-  let l:player = a:help_window.player
-  let l:abs_position = [
-    \ a:help_window.pos[0]+l:player.y-1,
-    \ a:help_window.pos[1]+l:player.x-1]
-  call cursor(l:abs_position[0], l:abs_position[1])
-  execute 'normal! r '
-  let l:player.x = a:help_window.start[1]
-  let l:player.y = a:help_window.start[0]
-  call cursor(a:help_window.pos[0]+l:player.y-1,
-    \         a:help_window.pos[1]+l:player.x-1)
-  execute 'normal! rA'
+  call s:cb_close_help_window(a:help_window, a:help_window.pos)
+  call s:cb_open_help_window(a:help_window, a:help_window.pos)
+  let a:help_window.player.y = a:help_window.start[0]
+  let a:help_window.player.x = a:help_window.start[1]
 endfunction
 " }}}
 
