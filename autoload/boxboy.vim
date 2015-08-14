@@ -99,7 +99,7 @@ endfunction
 let s:Sequence = { 'actions' : [], 'idx' : 0 }
 
 function! s:Sequence.new() abort
-  return copy(s:Sequence)
+  return deepcopy(s:Sequence)
 endfunction
 
 function! s:Sequence.init() abort
@@ -406,11 +406,16 @@ function! s:Player.move(dir) abort
   if a:dir ==# 'h'
     execute 'normal! r hr' . s:PLAYER_CH
     let self.x -= 1
+    let self.prev_dir = a:dir
   elseif a:dir ==# 'l'
     execute 'normal! r lr' . s:PLAYER_CH
     let self.x += 1
+    let self.prev_dir = a:dir
+  elseif a:dir ==# ' '
+    execute 'normal! r kr' . s:PLAYER_CH
+    let self.y -= 1
+    call self.move(self.prev_dir)
   endif
-  let self.prev_dir = a:dir
 endfunction
 
 " Player jumps up.
@@ -942,7 +947,20 @@ endfor
 
 " }}}
 
-function! s:cb_init_help_window(help_window) abort
+function! s:get_hilight_name(key) abort " {{{
+  if a:key ==# 'h'
+    return 'left_key'
+  elseif a:key ==# 'l'
+    return 'right_key'
+  elseif a:key ==# ' '
+    return 'jump_key'
+  endif
+endfunction
+" }}}
+
+" Callback functions {{{
+
+function! s:cb_init_help_window(help_window) abort " {{{
   let l:player = a:help_window.player
   let l:abs_position = [
     \ a:help_window.pos[0]+l:player.y-1,
@@ -955,23 +973,28 @@ function! s:cb_init_help_window(help_window) abort
     \         a:help_window.pos[1]+l:player.x-1)
   execute 'normal! rA'
 endfunction
+" }}}
 
-function! s:cb_player_in_window_moves(help_window, player, key) abort
+function! s:cb_player_in_window_moves(help_window, player, key) abort " {{{
   let l:abs_position = [
     \ a:help_window.pos[0]+a:player.y-1,
     \ a:help_window.pos[1]+a:player.x-1]
   call cursor(l:abs_position[0], l:abs_position[1])
   call a:player.move(a:key)
 endfunction
+" }}}
 
-function! s:cb_set_hl_specifing_string(str) abort
+function! s:cb_set_hl_specifing_string(str) abort " {{{
   execute 'highlight boxboy_' . a:str . ' ctermfg=darkgray'
 endfunction
+" }}}
 
-function! s:cb_reset_hl_specifing_string(str) abort
+function! s:cb_reset_hl_specifing_string(str) abort " {{{
   execute 'highlight boxboy_' . a:str . ' ctermfg=NONE'
 endfunction
+" }}}
 
+" function! s:create_sequence_with_script(help_window) abort {{{
 " Script formats
 "  h       : player move left
 "  l       : player move right
@@ -981,30 +1004,23 @@ function! s:create_sequence_with_script(help_window) abort
   call l:sequence.add(s:Wait.new(5000))
   for l:i in range(0, len(a:help_window.script)-1)
     let l:ch = a:help_window.script[l:i]
-    if l:ch =~# '[hl]'
-      call l:sequence.add(
-        \ s:Action.new('s:cb_set_hl_specifing_string', [a:help_window.name]))
-      call l:sequence.add(
-        \ s:Action.new('s:cb_player_in_window_moves',
-        \ [a:help_window, a:help_window.player, l:ch]))
-      call l:sequence.add(s:Wait.new(500))
-      call l:sequence.add(
-        \ s:Action.new('s:cb_reset_hl_specifing_string', [a:help_window.name]))
-      call l:sequence.add(s:Wait.new(5000))
-    elseif l:ch ==# ' '
-      call l:sequence.add(
-        \ s:Action.new('s:cb_player_in_window_moves',
-        \ [a:help_window, a:help_window.player, l:ch]))
-      call l:sequence.add(s:Wait.new(5000))
-    endif
+    let l:hl_name = s:get_hilight_name(l:ch)
+    call l:sequence.add(
+      \ s:Action.new('s:cb_set_hl_specifing_string', [l:hl_name]))
+    call l:sequence.add(
+      \ s:Action.new('s:cb_player_in_window_moves',
+      \ [a:help_window, a:help_window.player, l:ch]))
+    call l:sequence.add(s:Wait.new(500))
+    call l:sequence.add(
+      \ s:Action.new('s:cb_reset_hl_specifing_string', [l:hl_name]))
+    call l:sequence.add(s:Wait.new(5000))
   endfor
   call l:sequence.add(
     \ s:Action.new('s:cb_init_help_window',
     \ [a:help_window]))
   return l:sequence
 endfunction
-
-" Callback functions {{{
+" }}}
 
 let s:is_draw_hw = 0
 
@@ -1013,6 +1029,8 @@ function! s:cb_go_to_next_stage() abort " {{{
   if (s:room.has_next())
     call s:room.next()
     let s:stage = s:room.get_stage()
+
+    call s:SequenceManager.clear()
 
     call s:Drawer.draw_stage(s:stage)
     call s:Drawer.draw_information()
@@ -1151,18 +1169,16 @@ function! s:boxboy_main() abort " {{{
   syntax match boxboy_dir /[<^v>]/ contained
   syntax match boxboy_block /=/    contained
   syntax match boxboy_genblock /#/ contained
-  syntax match boxboy_space_key /[space]/ contained
-  syntax match boxboy_right_key /l/ contained
   syntax match boxboy_player /A/ contained
-  syntax match boxboy_sample /sample/ contained
+  syntax match boxboy_jump_key /\[space\]/ contained
+  syntax match boxboy_right_key /l/ contained
 
-  syntax region boxboy_stage start=/\%^/ end=/^$/
-    \ contains=boxboy_dir,boxboy_block,boxboy_genblock,boxboy_space_key,boxboy_player,boxboy_right_key
+  syntax region boxboy_stage start=/\%^/ end=/^$/ contains=boxboy_dir,boxboy_block,boxboy_genblock,boxboy_space_key,boxboy_player,boxboy_right_key,boxboy_jump_key
 
   highlight boxboy_dir_hi guibg=blue ctermbg=blue
   highlight boxboy_block_hi guifg=gray guibg=lightgray ctermfg=gray ctermbg=lightgray
   highlight boxboy_genblock_hi guifg=gray guibg=darkgray ctermfg=gray ctermbg=darkgray
-  highlight boxboy_space_key_hi ctermfg=NONE
+  highlight boxboy_jump_key_hi ctermfg=NONE
   highlight boxboy_right_key_hi ctermfg=NONE
   highlight boxboy_player_hi ctermfg=NONE
 
@@ -1171,6 +1187,7 @@ function! s:boxboy_main() abort " {{{
   highlight default link boxboy_genblock boxboy_genblock_hi
   highlight default link boxboy_space_key boxboy_space_key_hi
   highlight default link boxboy_right_key boxboy_right_key_hi
+  highlight default link boxboy_jump_key boxboy_jump_key_hi
   highlight default link boxboy_player boxboy_player_hi
   " }}}
 

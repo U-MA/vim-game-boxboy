@@ -1,15 +1,15 @@
 call boxboy#add_help_window('jump', {
-  \ 'name'   : 'jump',
+  \ 'name'   : 'jump_key',
   \ 'window' : [
   \   '+-----------+',
   \   '|           |',
-  \   '|     A     |',
+  \   '|   A =     |',
   \   '|===========|',
   \   '|  [space]  |',
   \   '+-----------+',
   \ ],
-  \ 'start'  : [3, 7],
-  \ 'script' : '* * ',
+  \ 'start'  : [3, 5],
+  \ 'script' : 'l ',
   \})
 
 call boxboy#add_help_window('move_right', {
@@ -17,11 +17,11 @@ call boxboy#add_help_window('move_right', {
   \ 'window' : [
   \   '+-----------+',
   \   '|           |',
-  \   '|     A     |',
+  \   '|    A      |',
   \   '|===========|',
   \   '|     l     |',
   \   '+-----------+',
   \ ],
-  \ 'start'  : [3, 7],
-  \ 'script' : '*l*l',
+  \ 'start'  : [3, 6],
+  \ 'script' : 'll',
   \})
