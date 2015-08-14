@@ -292,7 +292,7 @@ function! s:Stack.print() abort
 endfunction
 
 function! s:NewStack() abort
-  return copy(s:Stack)
+  return deepcopy(s:Stack)
 endfunction
 " }}}
 
@@ -302,8 +302,7 @@ endfunction
 let s:GenBlock = { 'start' : [0, 0], 'dirctions' : {}, 'head' : [0, 0], 'len' : 0 }
 function! s:GenBlock.new(start) abort
   let l:ret = deepcopy(s:GenBlock)
-  let l:ret.start = a:start
-  let l:ret.head  = a:start
+  let l:ret.start = copy(a:start)
   let l:ret.directions = s:NewStack()
   return l:ret
 endfunction
@@ -320,8 +319,22 @@ function! s:GenBlock.move_head(dir) abort
   endif
 endfunction
 
+function! s:genblock_move_cursor(head) abort
+  if a:head[0] > 0
+    execute 'normal! ' . a:head[0] . 'j'
+  elseif a:head[0] < 0
+    execute 'normal! ' . a:head[0] . 'k'
+  endif
+  
+  if a:head[1] > 0
+    execute 'normal! ' . a:head[1] . 'l'
+  elseif a:head[1] < 0
+    execute 'normal! ' . a:head[1] . 'h'
+  endif
+endfunction
+
 function! s:GenBlock.extend(dir) abort
-  call cursor(self.head[0], self.head[1])
+  call s:genblock_move_cursor(self.head)
   execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
   call self.move_head(a:dir)
   call self.directions.push(a:dir)
@@ -378,7 +391,7 @@ endfunction
 " genblock is GenBlock class
 let s:Player = { 'x' : 0, 'y' : 0 , 'mode' : 0, 'prev_dir' : 'l', 'genblock' : {} }
 function! s:Player.new(row, col) abort
-  let l:ret   = copy(s:Player)
+  let l:ret   = deepcopy(s:Player)
   let l:ret.x = a:col
   let l:ret.y = a:row
   let l:ret.genblock = s:GenBlock.new([a:row, a:col])
@@ -615,6 +628,7 @@ function! s:HelpWindow.new(name, window, start, script) abort
 
   " player position is a relative position from upper-left of window
   let l:ret.player = s:Player.new(a:start[0], a:start[1])
+  echomsg string(l:ret.player.genblock.head)
 
   return l:ret
 endfunction
@@ -957,6 +971,8 @@ function! s:get_hilight_name(key) abort " {{{
     return 'right_key'
   elseif a:key ==# ' '
     return 'jump_key'
+  elseif a:key ==# 't'
+    return 'toggle_key'
   endif
 endfunction
 " }}}
@@ -987,6 +1003,18 @@ function! s:cb_player_in_window_moves(help_window, player, key) abort " {{{
 endfunction
 " }}}
 
+function! s:cb_player_generate_block(help_window, player, key) abort
+  let l:abs_position = [
+    \ a:help_window.pos[0]+a:player.y-1,
+    \ a:help_window.pos[1]+a:player.x-1]
+  call cursor(l:abs_position[0], l:abs_position[1])
+  call a:player.extend_block(a:key)
+endfunction
+
+function! s:cb_player_toggle_mode(help_window, player) abort
+  call a:player.toggle_mode()
+endfunction
+
 function! s:cb_set_hl_specifing_string(str) abort " {{{
   execute 'highlight boxboy_' . a:str . ' ctermfg=darkgray'
 endfunction
@@ -999,24 +1027,53 @@ endfunction
 
 " function! s:create_sequence_with_script(help_window) abort {{{
 " Script formats
-"  h       : player move left
-"  l       : player move right
-"  <space> : player jumps to a previous direction
+"  h       : player move left  / genblock extend to left
+"  j       : nop               / genblock extend to down
+"  k       : nop               / genblock extend to up
+"  l       : player move right / genblock extend to right
+"  <space> : player jumps to a previous direction / nop
+"  t       : player mode toggles
+let s:toggle_on = 0
 function! s:create_sequence_with_script(help_window) abort
   let l:sequence = s:Sequence.new()
   call l:sequence.add(s:Wait.new(5000))
   for l:i in range(0, len(a:help_window.script)-1)
     let l:ch = a:help_window.script[l:i]
     let l:hl_name = s:get_hilight_name(l:ch)
-    call l:sequence.add(
-      \ s:Action.new('s:cb_set_hl_specifing_string', [l:hl_name]))
-    call l:sequence.add(
-      \ s:Action.new('s:cb_player_in_window_moves',
-      \ [a:help_window, a:help_window.player, l:ch]))
-    call l:sequence.add(s:Wait.new(500))
-    call l:sequence.add(
-      \ s:Action.new('s:cb_reset_hl_specifing_string', [l:hl_name]))
-    call l:sequence.add(s:Wait.new(5000))
+    if l:ch ==# 't' " TOGGLE
+      let s:toggle_on = !s:toggle_on
+      call l:sequence.add(
+        \ s:Action.new('s:cb_set_hl_specifing_string', [l:hl_name]))
+      call l:sequence.add(
+        \ s:Action.new('s:cb_player_toggle_mode',
+        \ [a:help_window, a:help_window.player]))
+      call l:sequence.add(s:Wait.new(500))
+      call l:sequence.add(
+        \ s:Action.new('s:cb_reset_hl_specifing_string', [l:hl_name]))
+      call l:sequence.add(s:Wait.new(5000))
+    else
+      if !s:toggle_on
+        call l:sequence.add(
+          \ s:Action.new('s:cb_set_hl_specifing_string', [l:hl_name]))
+        call l:sequence.add(
+          \ s:Action.new('s:cb_player_in_window_moves',
+          \ [a:help_window, a:help_window.player, l:ch]))
+        call l:sequence.add(s:Wait.new(500))
+        call l:sequence.add(
+          \ s:Action.new('s:cb_reset_hl_specifing_string', [l:hl_name]))
+        call l:sequence.add(s:Wait.new(5000))
+      else
+        call l:sequence.add(
+          \ s:Action.new('s:cb_set_hl_specifing_string', [l:hl_name]))
+        call l:sequence.add(
+          \ s:Action.new('s:cb_player_generate_block',
+          \ [a:help_window, a:help_window.player, l:ch]))
+        call l:sequence.add(s:Wait.new(500))
+        call l:sequence.add(
+          \ s:Action.new('s:cb_reset_hl_specifing_string', [l:hl_name]))
+        call l:sequence.add(s:Wait.new(5000))
+      endif
+    endif
   endfor
   call l:sequence.add(
     \ s:Action.new('s:cb_init_help_window',
@@ -1176,9 +1233,10 @@ function! s:boxboy_main() abort " {{{
   syntax match boxboy_jump_key /\[space\]/ contained
   syntax match boxboy_right_key /l/ contained
   syntax match boxboy_left_key /h/ contained
+  syntax match boxboy_toggle_key /t/ contained
 
   syntax region boxboy_stage start=/\%^/ end=/^$/
-    \ contains=boxboy_dir,boxboy_block,boxboy_genblock,boxboy_space_key,boxboy_player,boxboy_right_key,boxboy_jump_key,boxboy_left_key
+    \ contains=boxboy_dir,boxboy_block,boxboy_genblock,boxboy_space_key,boxboy_player,boxboy_right_key,boxboy_jump_key,boxboy_left_key,boxboy_toggle_key
 
   highlight boxboy_dir_hi guibg=blue ctermbg=blue
   highlight boxboy_block_hi guifg=gray guibg=lightgray ctermfg=gray ctermbg=lightgray
@@ -1186,6 +1244,7 @@ function! s:boxboy_main() abort " {{{
   highlight boxboy_jump_key_hi ctermfg=NONE
   highlight boxboy_right_key_hi ctermfg=NONE
   highlight boxboy_left_key_hi ctermfg=NONE
+  highlight boxboy_toggle_key_hi ctermfg=NONE
   highlight boxboy_player_hi ctermfg=NONE
 
   highlight default link boxboy_dir boxboy_dir_hi
@@ -1195,6 +1254,7 @@ function! s:boxboy_main() abort " {{{
   highlight default link boxboy_right_key boxboy_right_key_hi
   highlight default link boxboy_left_key boxboy_left_key_hi
   highlight default link boxboy_jump_key boxboy_jump_key_hi
+  highlight default link boxboy_toggle_key boxboy_toggle_key_hi
   highlight default link boxboy_player boxboy_player_hi
   " }}}
 

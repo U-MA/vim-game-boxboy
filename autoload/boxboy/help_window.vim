@@ -54,3 +54,18 @@ call boxboy#add_help_window('move_horizontally', {
   \ 'script' : 'llllhhhh',
   \})
 
+call boxboy#add_help_window('generate_block', {
+  \ 'name'   : 'genblock',
+  \ 'window' : [
+  \   '+-----------+',
+  \   '|           |',
+  \   '|      =    |',
+  \   '|   A  =    |',
+  \   '|===========|',
+  \   '|   t   l   |',
+  \   '+-----------+',
+  \ ],
+  \ 'start'  : [4, 5],
+  \ 'script' : 'ltlt  ',
+  \})
+
