@@ -703,27 +703,6 @@ endfunction
 
 " }}}
 
-" class MovableObjectsManager {{{
-
-" All registered objects MUST have move().
-let s:MovableObjectsManager = { 'objects' : [] }
-function! s:MovableObjectsManager.add(object) abort
-  call add(self.objects, a:object)
-endfunction
-
-function! s:MovableObjectsManager.clear() abort
-  let self.objects = []
-endfunction
-
-" All registered objects invoke move()
-function! s:MovableObjectsManager.move() abort
-  for l:obj in self.objects
-    call l:obj.move()
-  endfor
-endfunction
-
-" }}}
-
 " Key event {{{
 
 function! s:down() abort
