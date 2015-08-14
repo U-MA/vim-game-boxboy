@@ -1064,6 +1064,10 @@ function! s:cb_open_help_window(help_window, upper_left) abort
     " Register a window actions to SequenceManager
     let l:sequence = s:create_sequence_with_script(a:help_window)
     call s:SequenceManager.register(l:sequence)
+
+    let a:help_window.player.y = a:help_window.start[0]
+    let a:help_window.player.x = a:help_window.start[1]
+    let a:help_window.player.mode = 0
   endif
 endfunction
 " }}}
