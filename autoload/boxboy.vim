@@ -1172,14 +1172,17 @@ function! s:boxboy_main() abort " {{{
   syntax match boxboy_player /A/ contained
   syntax match boxboy_jump_key /\[space\]/ contained
   syntax match boxboy_right_key /l/ contained
+  syntax match boxboy_left_key /h/ contained
 
-  syntax region boxboy_stage start=/\%^/ end=/^$/ contains=boxboy_dir,boxboy_block,boxboy_genblock,boxboy_space_key,boxboy_player,boxboy_right_key,boxboy_jump_key
+  syntax region boxboy_stage start=/\%^/ end=/^$/
+    \ contains=boxboy_dir,boxboy_block,boxboy_genblock,boxboy_space_key,boxboy_player,boxboy_right_key,boxboy_jump_key,boxboy_left_key
 
   highlight boxboy_dir_hi guibg=blue ctermbg=blue
   highlight boxboy_block_hi guifg=gray guibg=lightgray ctermfg=gray ctermbg=lightgray
   highlight boxboy_genblock_hi guifg=gray guibg=darkgray ctermfg=gray ctermbg=darkgray
   highlight boxboy_jump_key_hi ctermfg=NONE
   highlight boxboy_right_key_hi ctermfg=NONE
+  highlight boxboy_left_key_hi ctermfg=NONE
   highlight boxboy_player_hi ctermfg=NONE
 
   highlight default link boxboy_dir boxboy_dir_hi
@@ -1187,6 +1190,7 @@ function! s:boxboy_main() abort " {{{
   highlight default link boxboy_genblock boxboy_genblock_hi
   highlight default link boxboy_space_key boxboy_space_key_hi
   highlight default link boxboy_right_key boxboy_right_key_hi
+  highlight default link boxboy_left_key boxboy_left_key_hi
   highlight default link boxboy_jump_key boxboy_jump_key_hi
   highlight default link boxboy_player boxboy_player_hi
   " }}}
