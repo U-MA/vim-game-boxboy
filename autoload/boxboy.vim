@@ -300,6 +300,7 @@ let s:blocks = [ '=', '#', 'O' ]
 
   let s:scripts = {}
   let s:stage_bottom_line = 0
+  let s:genblock_in_stage = {}
 
 " }}}
 
@@ -529,25 +530,27 @@ function! s:Player.process_move_mode(key) abort " {{{
 endfunction
 " }}}
 
+function! s:Player.ready_to_generate() abort " {{{
+  call s:game_erase_genblock()
+  call self.fall_if_possible()
+  call cursor(self.position[0], self.position[1])
+
+  let self.genblock = s:GenBlock.new(copy(self.position))
+endfunction
+" }}}
+
 function! s:Player.toggle_mode() abort " {{{
   if self.mode == 0
     " TOGGLE TO GENERATE BLOCK MODE
-    "echo 'GENERATE BLOCK MODE'
-    call s:game_erase_genblock()
-    call self.fall_if_possible()
-    call cursor(self.position[0], self.position[1])
-    let self.genblock = s:GenBlock.new(self.position)
+    call self.ready_to_generate()
     let self.mode = 1
     call s:set_hilight_ch()
   else
     " TOGGLE TO PLAYER MOVE MODE
-    "echo 'PLAYER MOVE MODE'
     call self.genblock.set_cursor_to_head()
     call s:reset_hilight_ch()
 
-    let s:genblock_in_stage = self.genblock
-    let s:genblock_in_stage.position = copy(self.genblock.parent_position)
-    let s:genblock_in_stage.parent_position = [1, 1]
+    call s:transfer_to_game(self.genblock)
     let self.genblock = s:GenBlock.new(copy(self.position))
 
     let self.mode = 0
@@ -593,7 +596,7 @@ endfunction
 function! s:Player.fall() abort " {{{
   execute 'normal! r jr' . s:PLAYER_CH
   let self.position[0] += 1
-  let self.genblock.set_position(copy(self.position))
+  let self.genblock.set_position(self.position)
 endfunction
 " }}}
 
@@ -981,11 +984,11 @@ endfor
 
 " }}}
 
-let s:genblock_in_stage = {}
 
-function! s:game_has_genblock() abort
+function! s:game_has_genblock() abort " {{{
   return !empty(s:genblock_in_stage)
 endfunction
+" }}}
 
 function! s:get_hilight_name(key) abort " {{{
   if a:key ==# 'h'
@@ -1165,6 +1168,13 @@ endfunction
 
 " }}}
 
+function! s:transfer_to_game(genblock) abort " {{{
+  let s:genblock_in_stage = a:genblock
+  let s:genblock_in_stage.position = copy(a:genblock.parent_position)
+  let s:genblock_in_stage.parent_position = [ 1, 1 ]
+endfunction
+" }}}
+
 function! s:setup_events() abort " {{{
   " Note: This function assume that a stage already has been drawn.
 
@@ -1198,11 +1208,12 @@ function! s:setup_events() abort " {{{
 endfunction
 " }}}
 
-function! s:genblock_fall_in_stage() abort
+function! s:genblock_fall_in_stage() abort " {{{
   if s:game_has_genblock()
     call s:genblock_in_stage.fall_if_possible()
   endif
 endfunction
+" }}}
 
 function! s:update() abort " {{{
   " This function is kernel of this game.
@@ -1227,12 +1238,13 @@ function! s:update() abort " {{{
 endfunction
 " }}}
 
-function! s:game_erase_genblock() abort
+function! s:game_erase_genblock() abort " {{{
   if s:game_has_genblock()
     call s:genblock_in_stage.remove_self()
     let s:genblock_in_stage = {}
   endif
 endfunction
+" }}}
 
 function! s:open_gametab() abort " {{{
   tabnew boxboy
