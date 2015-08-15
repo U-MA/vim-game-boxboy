@@ -591,10 +591,22 @@ function! s:Player.process_genblock_mode(key) abort " {{{
 endfunction
 " }}}
 
+function! s:Player.can_hook() abort " {{{
+  let l:line = getline('.')
+  if self.prev_dir ==# 'l'
+    return match(line[col('.')-1:], 'A\s*O') != -1
+  else
+    return match(line[:col('.')-1], 'O\s*A') != -1
+  endif
+endfunction
+" }}}
+
 function! s:Player.process_move_mode(key) abort " {{{
   call cursor(self.position[0], self.position[1])
   if a:key ==# 'f'
-    call self.hook_shot()
+    if self.can_hook()
+      call self.hook_shot()
+    endif
   elseif a:key ==# ' '
     if self.is_movable('k')
       call self.jump_up()
@@ -1023,6 +1035,8 @@ function! s:cb_go_to_next_stage() abort " {{{
     call s:set_player_to_cursor()
     let l:pos = getpos('.')
     let s:player = s:Player.new(copy(l:pos[1:2]))
+
+    let s:genblock_in_stage = {}
   else
     call s:EventDispatcher.clear()
     call s:Drawer.draw_appriciate()
@@ -1220,6 +1234,10 @@ function! s:boxboy_main() abort " {{{
   let l:pos = getpos('.')
   let s:player = s:Player.new(copy(l:pos[1:2]))
 
+  let l:min_fps = 10000000000000000
+  let l:sum_fps = 0
+  let l:ave_fps = 0
+  let l:count   = 1
   while 1
     redraw
     let l:start = reltime()
@@ -1232,7 +1250,15 @@ function! s:boxboy_main() abort " {{{
     let l:elapsed = reltime(l:start)
     let l:sec = l:elapsed[0] + l:elapsed[1] / 1000000.0
     let l:fps = 1.0 / l:sec
+    let l:sum_fps += l:fps
+    let l:ave_fps = l:sum_fps / l:count
+    let l:count += 1
+    if l:fps < l:min_fps
+      let l:min_fps = l:fps
+    endif
     call setline(s:stage_bottom_line+1, string(l:fps))
+    call setline(s:stage_bottom_line+2, string(l:ave_fps))
+    call setline(line('$'), string(l:min_fps))
   endwhile
   call s:close_gametab()
 endfunction
