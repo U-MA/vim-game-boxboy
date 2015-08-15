@@ -1132,6 +1132,19 @@ function! s:genblock_fall_in_stage() abort " {{{
 endfunction
 " }}}
 
+function! s:ready_to_start() abort
+  %delete
+  call s:setup_view(s:stage)
+  call s:setup_events()
+  call s:move_cursor_to_start()
+  call s:set_player_to_cursor()
+
+  let s:genblock_in_stage = {}
+
+  let l:pos = getpos('.')
+  let s:player = s:Player.new(copy(l:pos[1:2]))
+endfunction
+
 function! s:update() abort " {{{
   " This function is kernel of this game.
 
@@ -1140,6 +1153,9 @@ function! s:update() abort " {{{
   if l:ch != 0
     if nr2char(l:ch) ==# 'Q'
       return 0
+    elseif nr2char(l:ch) ==# 'r'
+      call s:ready_to_start()
+      return 1
     endif
     call s:player.key_event(nr2char(l:ch))
   endif
