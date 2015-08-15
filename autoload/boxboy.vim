@@ -869,30 +869,6 @@ endfunction
 
 " }}}
 
-function! s:down() abort " {{{
-  if s:is_block(s:getchar_on('j'))
-    return
-  endif
-
-  while !s:is_block(s:getchar_on('j'))
-    execute 'normal! r jr' . s:PLAYER_CH
-    let s:player.position[0] += 1
-    redraw!
-  endwhile
-endfunction
-" }}}
-
-function! s:can_hook() abort " {{{
-  " cursor MUST point to player
-  let line = getline('.')
-  if s:player.prev_dir ==# 'l'
-    return match(line[col('.')-1:], 'A\s*O') != -1
-  else
-    return match(line[:col('.')-1], 'O\s*A') != -1
-  endif
-endfunction
-"}}}
-
 " Stages {{{
 
 " class Stage {{{
