@@ -435,6 +435,10 @@ function! s:GenBlock.new(parent_position) abort
 endfunction
 
 function! s:GenBlock.can_fall() abort
+  if self.is_check == 0
+    return 0
+  endif
+
   call cursor(self.parent_position[0] + self.position[0] - 1,
         \         self.parent_position[1] + self.position[1] - 1)
   for l:block in self.directions.range()
@@ -689,8 +693,8 @@ endfunction
 function! s:Player.fall() abort " {{{
   execute 'normal! r jr' . s:PLAYER_CH
   let self.position[0] += 1
-  if self.genblock.length != 0
-    let self.genblock.set_position(self.position)
+  if self.genblock.length
+    call self.genblock.set_position(self.position)
   endif
 endfunction
 " }}}
@@ -1165,6 +1169,10 @@ function! s:update() abort " {{{
       return 0
     elseif nr2char(l:ch) ==# 'r'
       call s:ready_to_start()
+      return 1
+    elseif nr2char(l:ch) ==# 'x'
+      call s:game_erase_genblock()
+      let s:player.genblock = s:GenBlock.new(copy(s:player.position))
       return 1
     endif
     call s:player.key_event(nr2char(l:ch))
