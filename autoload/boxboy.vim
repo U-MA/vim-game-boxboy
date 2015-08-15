@@ -364,6 +364,15 @@ function! s:GenBlock.can_fall() abort
   return 1
 endfunction
 
+function! s:GenBlock.remove_self() abort
+  call cursor(self.parent_position[0] + self.position[0] - 1,
+    \         self.parent_position[1] + self.position[1] - 1)
+  for l:dir in self.directions.range()
+    execute 'normal! ' . l:dir
+    execute 'normal! r '
+  endfor
+endfunction
+
 function! s:GenBlock.fall_if_possible() abort
   if self.can_fall()
     call cursor(self.parent_position[0] + self.position[0] - 1,
@@ -371,8 +380,9 @@ function! s:GenBlock.fall_if_possible() abort
     for l:block in self.directions.range()
       execute 'normal! ' . l:block
       call s:move_ch_on_cursor_to('j')
+      let self.position[0] += 1
     endfor
-    endif
+  endif
 endfunction
 
 function! s:GenBlock.set_position(position) abort
@@ -513,6 +523,8 @@ function! s:Player.toggle_mode() abort
   if self.mode == 0
     " TOGGLE TO GENERATE BLOCK MODE
     "echo 'GENERATE BLOCK MODE'
+    call s:game_erase_genblock()
+    call cursor(self.position[0], self.position[1])
     let self.genblock = s:GenBlock.new(self.position)
     let self.mode = 1
     call s:set_hilight_ch()
@@ -521,8 +533,12 @@ function! s:Player.toggle_mode() abort
     "echo 'PLAYER MOVE MODE'
     call self.genblock.set_cursor_to_head()
     call s:reset_hilight_ch()
-    call cursor(self.position[0] + self.genblock.position[0] - 1,
-      \         self.position[1] + self.genblock.position[1] - 1)
+
+    let s:genblock_in_stage = self.genblock
+    let s:genblock_in_stage.position = copy(self.genblock.parent_position)
+    let s:genblock_in_stage.parent_position = [1, 1]
+    let self.genblock = {}
+
     let self.mode = 0
   endif
 endfunction
@@ -952,6 +968,12 @@ endfor
 
 " }}}
 
+let s:genblock_in_stage = {}
+
+function! s:game_has_genblock() abort
+  return !empty(s:genblock_in_stage)
+endfunction
+
 function! s:get_hilight_name(key) abort " {{{
   if a:key ==# 'h'
     return 'left_key'
@@ -1163,6 +1185,12 @@ function! s:setup_events() abort " {{{
 endfunction
 " }}}
 
+function! s:genblock_fall_in_stage() abort
+  if s:game_has_genblock()
+    call s:genblock_in_stage.fall_if_possible()
+  endif
+endfunction
+
 function! s:update() abort " {{{
   " This function is kernel of this game.
 
@@ -1177,7 +1205,7 @@ function! s:update() abort " {{{
 
   " Gravity
   call s:player.fall_if_possible()
-  "call s:player.genblock.fall_if_possible()
+  call s:genblock_fall_in_stage()
 
   call s:SequenceManager.run()
   call s:EventDispatcher.check()
@@ -1185,6 +1213,13 @@ function! s:update() abort " {{{
   return 1
 endfunction
 " }}}
+
+function! s:game_erase_genblock() abort
+  if s:game_has_genblock()
+    call s:genblock_in_stage.remove_self()
+    let s:genblock_in_stage = {}
+  endif
+endfunction
 
 function! s:open_gametab() abort " {{{
   tabnew boxboy
