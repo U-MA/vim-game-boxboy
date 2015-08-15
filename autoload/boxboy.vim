@@ -583,9 +583,6 @@ function! s:Player.process_genblock_mode(key) abort " {{{
   if self.genblock.is_shrink_dir(a:key)
     call self.shrink_block()
   else
-    if a:key =~# '[hl]'
-      let self.prev_dir = a:key
-    endif
     call self.extend_block(a:key)
   endif
 endfunction
@@ -708,6 +705,9 @@ endfunction
 " }}}
 
 function! s:Player.extend_block(dir) abort " {{{
+  if self.genblock.length == 0 && a:dir =~# '[hl]'
+    let self.prev_dir = a:dir
+  endif
   call self.genblock.extend(a:dir)
 endfunction
 " }}}
