@@ -150,6 +150,100 @@ endfunction
 
 " }}}
 
+" Library {{{
+
+" class Stack {{{
+" Note: Stack size is 10
+
+let s:Stack = { 'data': [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ], 'head': -1 }
+
+function! s:Stack.new() abort
+  return copy(s:Stack)
+endfunction
+
+function! s:Stack.push(a) abort
+  let self.head += 1
+  let self.data[self.head] = a:a
+endfunction
+
+function! s:Stack.pop() abort
+  try
+    let l:ret = self.top()
+  catch /^Stack.*/
+    echomsg 'error'
+  endtry
+
+  let self.head -= 1
+  return l:ret
+endfunction
+
+function! s:Stack.clear() abort
+  let self.head = -1
+endfunction
+
+function! s:Stack.empty() abort
+  return self.head == -1
+endfunction
+
+function! s:Stack.top() abort
+  if self.head == -1
+    throw 'top(): Stack is empty'
+  endif
+  return self.data[self.head]
+endfunction
+
+function! s:Stack.print() abort
+  if self.empty()
+    return
+  endif
+  for l:i in range(self.head, 0, -1)
+  endfor
+endfunction
+
+" }}}
+
+" class Vecter {{{
+
+let s:Vector = { 'data' : [], 'size' : 0 }
+
+function! s:Vector.new() abort
+  return deepcopy(s:Vector)
+endfunction
+
+function! s:Vector.empty() abort
+  return self.size == 0
+endfunction
+
+" return 0 if vector is empty
+function! s:Vector.tail() abort
+  if !self.empty()
+    return self.data[self.size-1]
+  endif
+endfunction
+
+function! s:Vector.push_back(elem) abort
+  call add(self.data, a:elem)
+  let self.size += 1
+endfunction
+
+" return 0 if vector is empty
+function! s:Vector.pop_back() abort
+  if !self.empty()
+    let l:elem = self.data[self.size-1]
+    call remove(self.data, self.size-1)
+    let self.size -= 1
+    return l:elem
+  endif
+endfunction
+
+function! s:Vector.range() abort
+  return self.data
+endfunction
+
+" }}}
+
+" }}}
+
 
 " Public functions {{{
 
@@ -242,96 +336,6 @@ function! s:reset_hilight_ch() abort
   call s:setchar_on('k', s:save_ch[2])
   call s:setchar_on('l', s:save_ch[3])
   let s:save_ch = []
-endfunction
-
-" }}}
-
-" class Stack {{{
-" Note: Stack size is 10
-
-let s:Stack = { 'data': [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ], 'head': -1 }
-
-function! s:Stack.new() abort
-  return copy(s:Stack)
-endfunction
-
-function! s:Stack.push(a) abort
-  let self.head += 1
-  let self.data[self.head] = a:a
-endfunction
-
-function! s:Stack.pop() abort
-  try
-    let l:ret = self.top()
-  catch /^Stack.*/
-    echomsg 'error'
-  endtry
-
-  let self.head -= 1
-  return l:ret
-endfunction
-
-function! s:Stack.clear() abort
-  let self.head = -1
-endfunction
-
-function! s:Stack.empty() abort
-  return self.head == -1
-endfunction
-
-function! s:Stack.top() abort
-  if self.head == -1
-    throw 'top(): Stack is empty'
-  endif
-  return self.data[self.head]
-endfunction
-
-function! s:Stack.print() abort
-  if self.empty()
-    return
-  endif
-  for l:i in range(self.head, 0, -1)
-  endfor
-endfunction
-
-" }}}
-
-" class Vecter {{{
-
-let s:Vector = { 'data' : [], 'size' : 0 }
-
-function! s:Vector.new() abort
-  return deepcopy(s:Vector)
-endfunction
-
-function! s:Vector.empty() abort
-  return self.size == 0
-endfunction
-
-" return 0 if vector is empty
-function! s:Vector.tail() abort
-  if !self.empty()
-    return self.data[self.size-1]
-  endif
-endfunction
-
-function! s:Vector.push_back(elem) abort
-  call add(self.data, a:elem)
-  let self.size += 1
-endfunction
-
-" return 0 if vector is empty
-function! s:Vector.pop_back() abort
-  if !self.empty()
-    let l:elem = self.data[self.size-1]
-    call remove(self.data, self.size-1)
-    let self.size -= 1
-    return l:elem
-  endif
-endfunction
-
-function! s:Vector.range() abort
-  return self.data
 endfunction
 
 " }}}
