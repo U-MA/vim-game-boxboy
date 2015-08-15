@@ -312,6 +312,14 @@ function! s:GenBlock.new(parent_position) abort
   return l:genblock
 endfunction
 
+function! s:GenBlock.set_position(position) abort
+  let self.position = copy(a:position)
+endfunction
+
+function! s:GenBlock.set_parent_position(parent_position) abort
+  let self.parent_position = copy(a:parent_position)
+endfunction
+
 function! s:GenBlock.set_cursor_to_head() abort
   call cursor(self.parent_position[0] + self.position[0] + self.head[0] - 1,
     \         self.parent_position[1] + self.position[1] + self.head[1] - 1)
@@ -405,6 +413,13 @@ function! s:Player.key_event(key) abort
   endif
 endfunction
 
+function! s:Player.fall_if_possible() abort
+  call cursor(self.position[0], self.position[1])
+  if !s:is_block(s:getchar_on('j'))
+    call self.fall()
+  endif
+endfunction
+
 function! s:Player.process_genblock_mode(key) abort
   if self.genblock.is_shrink_dir(a:key)
     call self.shrink_block()
@@ -473,6 +488,11 @@ endfunction
 function! s:Player.jump_up() abort
   execute 'normal! r kr' . s:PLAYER_CH
   let self.position[0] -= 1
+endfunction
+
+function! s:Player.fall() abort
+  execute 'normal! r jr' . s:PLAYER_CH
+  let self.position[0] += 1
 endfunction
 
 " Player hookshots before 'O'
@@ -740,9 +760,7 @@ endfunction
 
 " }}}
 
-" Key event {{{
-
-function! s:down() abort
+function! s:down() abort " {{{
   if s:is_block(s:getchar_on('j'))
     return
   endif
@@ -753,8 +771,9 @@ function! s:down() abort
     redraw!
   endwhile
 endfunction
+" }}}
 
-function! s:erase_blocks() abort
+function! s:erase_blocks() abort " {{{
   let tmp_pos = getpos('.')
   execute 'normal! gg0'
   if search('#', 'W')
@@ -762,100 +781,15 @@ function! s:erase_blocks() abort
   endif
   call setpos('.', tmp_pos)
 endfunction
+" }}}
 
-" cursor MUST point to player
-function! s:can_hook() abort
+function! s:can_hook() abort " {{{
+  " cursor MUST point to player
   let line = getline('.')
   if s:player.prev_dir ==# 'l'
     return match(line[col('.')-1:], 'A\s*O') != -1
   else
     return match(line[:col('.')-1], 'O\s*A') != -1
-  endif
-endfunction
-
-function! s:process_genmode(key) abort
-  call s:reset_hilight_ch()
-  try
-    if s:player.genblock.length >= s:stage.get_gen_length_max()
-      return
-    elseif a:key ==# 'h'
-      let s:player.prev_dir = 'h'
-      if s:is_movable('h') && s:getchar_on('h') != 'G'
-        call s:player.extend_block('h')
-      endif
-    elseif a:key ==# 'j'
-      if s:is_movable('j') && s:getchar_on('j') != 'G'
-        call s:player.extend_block('j')
-      endif
-    elseif a:key ==# 'k'
-      if s:is_movable('k') && s:getchar_on('k') != 'G'
-        call s:player.extend_block('k')
-      endif
-    elseif a:key ==# 'l'
-      let s:player.prev_dir = 'l'
-      if s:is_movable('l') && s:getchar_on('l') != 'G'
-        call s:player.extend_block('l')
-      endif
-    endif
-  catch /^Stack.*/
-    echomsg 'key_events:stack is empty'
-  endtry
-  if s:player.genblock.len < s:stage.get_gen_length_max()
-    call s:set_hilight_ch()
-  endif
-endfunction
-
-function! s:process_movemode(key) abort
-  " TODO: detect some collisions
-  if a:key ==# 'l'
-    let s:player.prev_dir = 'l'
-    if s:is_movable('l')
-      call s:player.move('l')
-    endif
-  elseif a:key ==# 'h'
-    let s:player.prev_dir = 'h'
-    if s:is_movable('h')
-      call s:player.move('h')
-    endif
-  elseif a:key ==# ' '
-    if s:is_movable('k')
-      call s:player.jump()
-    endif
-    if s:is_movable(s:player.prev_dir)
-      call s:player.move(s:player.prev_dir)
-    endif
-  elseif a:key ==# 'f'
-    if s:can_hook()
-      call s:player.hook_shot()
-    endif
-  elseif a:key ==# 'x'
-    call s:erase_blocks()
-    call s:player.init_block()
-  endif
-endfunction
-
-function! s:key_events(key) abort
-  if a:key ==# 't'
-    call s:player.toggle_mode()
-    if s:player.mode
-      call s:erase_blocks()
-      call s:set_hilight_ch()
-    else
-      call s:reset_hilight_ch()
-    endif
-    return
-  endif
-
-  if s:player.mode
-    " BLOCK GENEREATE MODE
-    let l:pos = s:player.genblock.head
-    call cursor(l:pos[0], l:pos[1])
-    "echo getpos('.')
-    call s:process_genmode(a:key)
-  else
-    " PLAYER MOVE MODE
-    call s:set_cursor_to_player()
-    call s:process_movemode(a:key)
   endif
 endfunction
 "}}}
@@ -1175,12 +1109,7 @@ function! s:update() abort " {{{
   endif
 
   " Gravity
-  " player mode is PLAYER MOVE MODE
-  "if s:player.mode == 0
-  "  call s:set_cursor_to_player()
-  "  call s:down()
-  "  call s:genblocks_fall_if_possible()
-  "endif
+  call s:player.fall_if_possible()
 
   call s:SequenceManager.run()
   call s:EventDispatcher.check()
