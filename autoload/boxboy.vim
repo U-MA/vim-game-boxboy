@@ -637,84 +637,11 @@ function! s:set_cursor_to_player() abort
   call cursor(s:player.position[0], s:player.position[1])
 endfunction
 
-function! s:genblocks_fall_if_possible() abort
-  if s:exist_genblocks()
-    while s:can_fall()
-      call s:move_down_gen_blocks()
-    endwhile
-  endif
-endfunction
-
 function! s:replace(str) abort
   let l:pos = getpos('.')
   execute 'normal! ' . len(a:str) . 'x'
   execute 'normal! i' . a:str
   call cursor(l:pos[1], l:pos[2])
-endfunction
-
-function! s:is_on_ground() abort
-  let l:pos = getpos('.')
-  execute 'normal! gg0'
-  call search(s:PLAYER_CH, 'W', s:stage_bottom_line)
-  let l:ret = s:getchar_on('j')
-  call setpos('.', l:pos)
-  return s:is_block(l:ret)
-endfunction
-
-function! s:can_fall() abort
-  let l:pos = getpos('.')
-  execute 'normal! gg0'
-  while search('#', 'W')
-    if s:getchar_on('j') =~# '[=AOG]'
-      call setpos('.', l:pos)
-      return 0
-    endif
-  endwhile
-  call setpos('.', l:pos)
-  return 1
-endfunction
-
-function! s:can_lift() abort
-  let l:pos = getpos('.')
-  execute 'normal! gg0'
-  let l:l = search('[A#]', 'W')
-  execute 'normal! gg0'
-  while search('[A#]', 'W') == l:l
-    if !s:is_movable('k')
-      call setpos('.', l:pos)
-      return 0
-    endif
-  endwhile
-  call setpos('.', l:pos)
-  return 1
-endfunction
-
-function! s:lift_up_player_and_gen_blocks() abort
-  let l:pos = getpos('.')
-  execute 'normal! gg0'
-  while search('[A#]', 'W', s:stage_bottom_line)
-    call s:move_ch_on_cursor_to('k')
-  endwhile
-  call setpos('.', l:pos)
-endfunction
-
-function! s:lift_down_player_and_gen_blocks() abort
-  let l:pos = getpos('.')
-  execute 'normal! ' . s:stage_bottom_line . 'G'
-  "echo s:stage_bottom_line
-  while search('[A#]', 'bW')
-    call s:move_ch_on_cursor_to('j')
-  endwhile
-  call setpos('.', l:pos)
-endfunction
-
-function! s:move_down_gen_blocks() abort
-  let l:pos = getpos('.')
-  execute 'normal! ' . s:stage_bottom_line . 'G'
-  while search('#', 'bW')
-    call s:move_ch_on_cursor_to('j')
-  endwhile
-  call setpos('.', l:pos)
 endfunction
 
 function! s:move_ch_on_cursor_to(dir) abort
@@ -766,16 +693,6 @@ function! s:is_block(ch) abort
     endif
   endfor
   return 0
-endfunction
-
-" dir == [hjkl]
-function! s:is_movable(dir) abort
-  let c = s:getchar_on(a:dir)
-  return !s:is_block(c) && (c !=# s:PLAYER_CH)
-endfunction
-
-function! s:exist_genblocks() abort
-  return s:player.genblock.length > 0
 endfunction
 
 " }}}
