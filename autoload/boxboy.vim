@@ -300,34 +300,58 @@ endfunction
 
 " Note: parent_position is read only
 
-" start is [ row, col ]
-let s:GenBlock = { 'position' : [0, 0], 'dirctions' : {}, 'head' : [0, 0],
+" generating start position is
+"   curosr(self.parent_position[0] + self.position[0] - 1,
+"     \    self.parent_position[1] + self.position[1] - 1)
+let s:GenBlock = { 'position' : [1, 1], 'dirctions' : {}, 'head' : [0, 0],
                  \ 'length' : 0, 'parent_position' : [1, 1] }
-function! s:GenBlock.new(position, parent_position) abort
+function! s:GenBlock.new(parent_position) abort
   let l:genblock                 = deepcopy(s:GenBlock)
-  let l:genblock.position        = copy(a:position)
   let l:genblock.directions      = s:Stack.new()
   let l:genblock.parent_position = a:parent_position
   return l:genblock
 endfunction
 
+function! s:GenBlock.set_cursor_to_head() abort
+  call cursor(self.parent_position[0] + self.position[0] + self.head[0] - 1,
+    \         self.parent_position[1] + self.position[1] + self.head[1] - 1)
+endfunction
+
+function! s:GenBlock.is_shrink_dir(dir) abort
+  if !self.directions.empty()
+    return self.directions.top() ==# s:reverse_dir(a:dir)
+  endif
+  return 0
+endfunction
+
+function! s:GenBlock.is_extendable(dir) abort
+  let l:ch = s:getchar_on(a:dir)
+  return !s:is_block(l:ch) && l:ch != 'G'
+endfunction
+
 function! s:GenBlock.extend(dir) abort
   call cursor(self.parent_position[0] + self.position[0] + self.head[0] - 1,
     \         self.parent_position[1] + self.position[1] + self.head[1] - 1)
-  execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
-  call self.move_head(a:dir)
-  call self.directions.push(a:dir)
-  let self.length += 1
+
+  if self.is_extendable(a:dir)
+    call s:reset_hilight_ch()
+    execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
+    call self.move_head(a:dir)
+    call self.directions.push(a:dir)
+    let self.length += 1
+    call s:set_hilight_ch()
+  endif
 endfunction
 
 function! s:GenBlock.shrink() abort
-  let l:rev = { 'h' : 'l', 'j' : 'k', 'k' : 'j', 'l' : 'h' }
-  let l:ch = l:rev[self.directions.pop()]
   call cursor(self.parent_position[0] + self.position[0] + self.head[0] - 1,
     \         self.parent_position[1] + self.position[1] + self.head[1] - 1)
+  call s:reset_hilight_ch()
+  let l:ch = s:reverse_dir(self.directions.pop())
   execute 'normal! r ' . l:ch
   call self.move_head(l:ch)
   let self.length -= 1
+  call s:set_hilight_ch()
 endfunction
 
 " class GenBlock private functions {{{
@@ -362,24 +386,74 @@ let s:Player = { 'position' : [1, 1] , 'mode' : 0, 'prev_dir' : 'l', 'genblock' 
 function! s:Player.new(position) abort
   let l:player          = deepcopy(s:Player)
   let l:player.position = copy(a:position)
-  let l:player.genblock = s:GenBlock.new(copy(a:position), l:player.position)
+  let l:player.genblock = s:GenBlock.new(l:player.position)
   return l:player
+endfunction
+
+function! s:Player.key_event(key) abort
+  if a:key ==# 't'
+    call self.toggle_mode()
+    return
+  endif
+
+  if self.mode
+    " PROCESS GENERATE BLOCK MODE
+    call self.process_genblock_mode(a:key)
+  else
+    " PROCESS PLAYER MOVE MODE
+    call self.process_move_mode(a:key)
+  endif
+endfunction
+
+function! s:Player.process_genblock_mode(key) abort
+  if self.genblock.is_shrink_dir(a:key)
+    call self.shrink_block()
+  else
+    call self.extend_block(a:key)
+  endif
+endfunction
+
+function! s:Player.process_move_mode(key) abort
+  call cursor(self.position[0], self.position[1])
+  if a:key ==# 'f'
+    call self.hook_shot()
+  elseif a:key ==# ' '
+    if self.is_movable('k')
+      call self.jump_up()
+      call self.move_if_possible(self.prev_dir)
+    endif
+  else
+    call self.move_if_possible(a:key)
+  endif
 endfunction
 
 function! s:Player.toggle_mode() abort
   if self.mode == 0
     " TOGGLE TO GENERATE BLOCK MODE
-    echo 'GENERATE BLOCK MODE'
-    let self.genblock = s:GenBlock.new(copy(self.position), self.position)
+    "echo 'GENERATE BLOCK MODE'
+    let self.genblock = s:GenBlock.new(self.position)
     let self.mode = 1
+    call s:set_hilight_ch()
   else
     " TOGGLE TO PLAYER MOVE MODE
-    echo 'PLAYER MOVE MODE'
+    "echo 'PLAYER MOVE MODE'
+    call self.genblock.set_cursor_to_head()
+    call s:reset_hilight_ch()
     call cursor(self.position[0] + self.genblock.position[0] - 1,
       \         self.position[1] + self.genblock.position[1] - 1)
-    call s:reset_hilight_ch()
     let self.mode = 0
   endif
+endfunction
+
+function! s:Player.move_if_possible(key) abort
+  if self.is_movable(a:key)
+    call self.move(a:key)
+  endif
+endfunction
+
+function! s:Player.is_movable(key) abort
+  let l:ch = s:getchar_on(a:key)
+  return !s:is_block(l:ch)
 endfunction
 
 " Player moves to a specifiing direction.
@@ -392,15 +466,11 @@ function! s:Player.move(dir) abort
     execute 'normal! r lr' . s:PLAYER_CH
     let self.position[1] += 1
     let self.prev_dir = a:dir
-  elseif a:dir ==# ' '
-    execute 'normal! r kr' . s:PLAYER_CH
-    let self.position[0] -= 1
-    call self.move(self.prev_dir)
   endif
 endfunction
 
 " Player jumps up.
-function! s:Player.jump() abort
+function! s:Player.jump_up() abort
   execute 'normal! r kr' . s:PLAYER_CH
   let self.position[0] -= 1
 endfunction
@@ -418,15 +488,15 @@ function! s:Player.hook_shot() abort
 endfunction
 
 function! s:Player.init_block() abort
-  let self.genblock = s:GenBlock.new(copy(self.position), self.position)
+  let self.genblock = s:GenBlock.new(self.position)
 endfunction
 
 function! s:Player.extend_block(dir) abort
   call self.genblock.extend(a:dir)
 endfunction
 
-function! s:Player.shrink_block(dir) abort
-  call self.genblock.shrink(a:dir)
+function! s:Player.shrink_block() abort
+  call self.genblock.shrink()
 endfunction
 
 " }}}
@@ -1101,16 +1171,16 @@ function! s:update() abort " {{{
     if nr2char(l:ch) ==# 'Q'
       return 0
     endif
-    call s:key_events(nr2char(l:ch))
+    call s:player.key_event(nr2char(l:ch))
   endif
 
   " Gravity
   " player mode is PLAYER MOVE MODE
-  if s:player.mode == 0
-    call s:set_cursor_to_player()
-    call s:down()
-    call s:genblocks_fall_if_possible()
-  endif
+  "if s:player.mode == 0
+  "  call s:set_cursor_to_player()
+  "  call s:down()
+  "  call s:genblocks_fall_if_possible()
+  "endif
 
   call s:SequenceManager.run()
   call s:EventDispatcher.check()
