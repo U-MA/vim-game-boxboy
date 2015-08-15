@@ -524,6 +524,7 @@ function! s:Player.toggle_mode() abort
     " TOGGLE TO GENERATE BLOCK MODE
     "echo 'GENERATE BLOCK MODE'
     call s:game_erase_genblock()
+    call self.fall_if_possible()
     call cursor(self.position[0], self.position[1])
     let self.genblock = s:GenBlock.new(self.position)
     let self.mode = 1
@@ -537,7 +538,7 @@ function! s:Player.toggle_mode() abort
     let s:genblock_in_stage = self.genblock
     let s:genblock_in_stage.position = copy(self.genblock.parent_position)
     let s:genblock_in_stage.parent_position = [1, 1]
-    let self.genblock = {}
+    let self.genblock = s:GenBlock.new(copy(self.position))
 
     let self.mode = 0
   endif
@@ -576,6 +577,7 @@ endfunction
 function! s:Player.fall() abort
   execute 'normal! r jr' . s:PLAYER_CH
   let self.position[0] += 1
+  let self.genblock.set_position(copy(self.position))
 endfunction
 
 " Player hookshots before 'O'
