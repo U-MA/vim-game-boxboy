@@ -380,8 +380,8 @@ function! s:GenBlock.fall_if_possible() abort
     for l:block in self.directions.range()
       execute 'normal! ' . l:block
       call s:move_ch_on_cursor_to('j')
-      let self.position[0] += 1
     endfor
+    let self.position[0] += 1
   endif
 endfunction
 
