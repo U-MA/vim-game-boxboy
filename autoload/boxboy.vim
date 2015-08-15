@@ -858,16 +858,6 @@ function! s:down() abort " {{{
 endfunction
 " }}}
 
-function! s:erase_blocks() abort " {{{
-  let tmp_pos = getpos('.')
-  execute 'normal! gg0'
-  if search('#', 'W')
-    silent %substitute/#/ /g
-  endif
-  call setpos('.', tmp_pos)
-endfunction
-" }}}
-
 function! s:can_hook() abort " {{{
   " cursor MUST point to player
   let line = getline('.')
