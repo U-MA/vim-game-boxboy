@@ -296,6 +296,46 @@ endfunction
 
 " }}}
 
+" class Vecter {{{
+
+let s:Vector = { 'data' : [], 'size' : 0 }
+
+function! s:Vector.new() abort
+  return deepcopy(s:Vector)
+endfunction
+
+function! s:Vector.empty() abort
+  return self.size == 0
+endfunction
+
+" return 0 if vector is empty
+function! s:Vector.tail() abort
+  if !self.empty()
+    return self.data[self.size-1]
+  endif
+endfunction
+
+function! s:Vector.push_back(elem) abort
+  call add(self.data, a:elem)
+  let self.size += 1
+endfunction
+
+" return 0 if vector is empty
+function! s:Vector.pop_back() abort
+  if !self.empty()
+    let l:elem = self.data[self.size-1]
+    call remove(self.data, self.size-1)
+    let self.size -= 1
+    return l:elem
+  endif
+endfunction
+
+function! s:Vector.range() abort
+  return self.data
+endfunction
+
+" }}}
+
 " class GenBlock {{{
 
 " Note: parent_position is read only
@@ -307,9 +347,32 @@ let s:GenBlock = { 'position' : [1, 1], 'dirctions' : {}, 'head' : [0, 0],
                  \ 'length' : 0, 'parent_position' : [1, 1] }
 function! s:GenBlock.new(parent_position) abort
   let l:genblock                 = deepcopy(s:GenBlock)
-  let l:genblock.directions      = s:Stack.new()
+  let l:genblock.directions      = s:Vector.new()
   let l:genblock.parent_position = a:parent_position
   return l:genblock
+endfunction
+
+function! s:GenBlock.can_fall() abort
+  call cursor(self.parent_position[0] + self.position[0] - 1,
+    \         self.parent_position[1] + self.position[1] - 1)
+  for l:block in self.directions.range()
+    execute 'normal! ' . l:block
+    if s:getchar_on('j') =~# '[=AOG]'
+      return 0
+    endif
+  endfor
+  return 1
+endfunction
+
+function! s:GenBlock.fall_if_possible() abort
+  if self.can_fall()
+    call cursor(self.parent_position[0] + self.position[0] - 1,
+      \         self.parent_position[1] + self.position[1] - 1)
+    for l:block in self.directions.range()
+      execute 'normal! ' . l:block
+      call s:move_ch_on_cursor_to('j')
+    endfor
+    endif
 endfunction
 
 function! s:GenBlock.set_position(position) abort
@@ -327,7 +390,7 @@ endfunction
 
 function! s:GenBlock.is_shrink_dir(dir) abort
   if !self.directions.empty()
-    return self.directions.top() ==# s:reverse_dir(a:dir)
+    return self.directions.tail() ==# s:reverse_dir(a:dir)
   endif
   return 0
 endfunction
@@ -345,7 +408,7 @@ function! s:GenBlock.extend(dir) abort
     call s:reset_hilight_ch()
     execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
     call self.move_head(a:dir)
-    call self.directions.push(a:dir)
+    call self.directions.push_back(a:dir)
     let self.length += 1
     call s:set_hilight_ch()
   endif
@@ -355,7 +418,7 @@ function! s:GenBlock.shrink() abort
   call cursor(self.parent_position[0] + self.position[0] + self.head[0] - 1,
     \         self.parent_position[1] + self.position[1] + self.head[1] - 1)
   call s:reset_hilight_ch()
-  let l:ch = s:reverse_dir(self.directions.pop())
+  let l:ch = s:reverse_dir(self.directions.pop_back())
   execute 'normal! r ' . l:ch
   call self.move_head(l:ch)
   let self.length -= 1
@@ -1114,6 +1177,7 @@ function! s:update() abort " {{{
 
   " Gravity
   call s:player.fall_if_possible()
+  call s:player.genblock.fall_if_possible()
 
   call s:SequenceManager.run()
   call s:EventDispatcher.check()
