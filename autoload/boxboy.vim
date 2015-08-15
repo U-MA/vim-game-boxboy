@@ -1132,7 +1132,7 @@ function! s:genblock_fall_in_stage() abort " {{{
 endfunction
 " }}}
 
-function! s:ready_to_start() abort
+function! s:ready_to_start() abort " {{{
   %delete
   call s:setup_view(s:stage)
   call s:setup_events()
@@ -1144,6 +1144,7 @@ function! s:ready_to_start() abort
   let l:pos = getpos('.')
   let s:player = s:Player.new(copy(l:pos[1:2]))
 endfunction
+" }}}
 
 function! s:update() abort " {{{
   " This function is kernel of this game.
