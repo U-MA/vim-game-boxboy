@@ -397,21 +397,21 @@ endfunction
 
 function! s:GenBlock.is_extendable(dir) abort
   let l:ch = s:getchar_on(a:dir)
-  return !s:is_block(l:ch) && l:ch != 'G'
+  return !s:is_block(l:ch) && (l:ch !=# 'G' && l:ch !=# 'A')
 endfunction
 
 function! s:GenBlock.extend(dir) abort
   call cursor(self.parent_position[0] + self.position[0] + self.head[0] - 1,
     \         self.parent_position[1] + self.position[1] + self.head[1] - 1)
 
+  call s:reset_hilight_ch()
   if self.is_extendable(a:dir)
-    call s:reset_hilight_ch()
     execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
     call self.move_head(a:dir)
     call self.directions.push_back(a:dir)
     let self.length += 1
-    call s:set_hilight_ch()
   endif
+  call s:set_hilight_ch()
 endfunction
 
 function! s:GenBlock.shrink() abort
@@ -1177,7 +1177,7 @@ function! s:update() abort " {{{
 
   " Gravity
   call s:player.fall_if_possible()
-  call s:player.genblock.fall_if_possible()
+  "call s:player.genblock.fall_if_possible()
 
   call s:SequenceManager.run()
   call s:EventDispatcher.check()
