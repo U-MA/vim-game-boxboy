@@ -270,7 +270,7 @@ function! s:move_ch_on_cursor_to(dir) abort " {{{
   let l:ch  = s:getchar_on_cursor()
   let l:pos = getpos('.')
   execute 'normal! r ' . a:dir . 'r' . l:ch
-  call setpos('.', l:pos)
+  call cursor(l:pos[1], l:pos[2])
 endfunction
 " }}}
 
@@ -426,7 +426,7 @@ endfunction
 "   curosr(self.parent_position[0] + self.position[0] - 1,
 "     \    self.parent_position[1] + self.position[1] - 1)
 let s:GenBlock = { 'position' : [1, 1], 'dirctions' : {}, 'head' : [0, 0],
-                 \ 'length' : 0, 'parent_position' : [1, 1] }
+                 \ 'length' : 0, 'parent_position' : [1, 1], 'is_check' : 1 }
 function! s:GenBlock.new(parent_position) abort
   let l:genblock                 = deepcopy(s:GenBlock)
   let l:genblock.directions      = s:Vector.new()
@@ -436,13 +436,20 @@ endfunction
 
 function! s:GenBlock.can_fall() abort
   call cursor(self.parent_position[0] + self.position[0] - 1,
-    \         self.parent_position[1] + self.position[1] - 1)
+        \         self.parent_position[1] + self.position[1] - 1)
   for l:block in self.directions.range()
     execute 'normal! ' . l:block
-    if s:getchar_on('j') =~# '[=AOG]'
+    let l:ch = s:getchar_on('j')
+    if l:ch =~# '[=AOG]'
+      if l:ch ==# 'A'
+        let self.is_check = 1
+      else
+        let self.is_check = 0
+      endif
       return 0
     endif
   endfor
+  let self.is_check = 1
   return 1
 endfunction
 
@@ -682,7 +689,9 @@ endfunction
 function! s:Player.fall() abort " {{{
   execute 'normal! r jr' . s:PLAYER_CH
   let self.position[0] += 1
-  let self.genblock.set_position(self.position)
+  if self.genblock.length != 0
+    let self.genblock.set_position(self.position)
+  endif
 endfunction
 " }}}
 
