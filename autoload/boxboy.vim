@@ -424,6 +424,9 @@ function! s:Player.process_genblock_mode(key) abort
   if self.genblock.is_shrink_dir(a:key)
     call self.shrink_block()
   else
+    if a:key =~# '[hl]'
+      let self.prev_dir = a:key
+    endif
     call self.extend_block(a:key)
   endif
 endfunction
@@ -437,7 +440,8 @@ function! s:Player.process_move_mode(key) abort
       call self.jump_up()
       call self.move_if_possible(self.prev_dir)
     endif
-  else
+  elseif a:key =~# '[hl]'
+    let self.prev_dir = a:key
     call self.move_if_possible(a:key)
   endif
 endfunction
