@@ -468,14 +468,16 @@ endfunction
 " prev_dir is a direction which player move to previously
 " genblock is GenBlock class
 let s:Player = { 'position' : [1, 1] , 'mode' : 0, 'prev_dir' : 'l', 'genblock' : {} }
-function! s:Player.new(position) abort
+
+function! s:Player.new(position) abort " {{{
   let l:player          = deepcopy(s:Player)
   let l:player.position = copy(a:position)
   let l:player.genblock = s:GenBlock.new(l:player.position)
   return l:player
 endfunction
+" }}}
 
-function! s:Player.key_event(key) abort
+function! s:Player.key_event(key) abort " {{{
   if a:key ==# 't'
     call self.toggle_mode()
     return
@@ -489,15 +491,17 @@ function! s:Player.key_event(key) abort
     call self.process_move_mode(a:key)
   endif
 endfunction
+" }}}
 
-function! s:Player.fall_if_possible() abort
+function! s:Player.fall_if_possible() abort " {{{
   call cursor(self.position[0], self.position[1])
   if !s:is_block(s:getchar_on('j'))
     call self.fall()
   endif
 endfunction
+" }}}
 
-function! s:Player.process_genblock_mode(key) abort
+function! s:Player.process_genblock_mode(key) abort " {{{
   if self.genblock.is_shrink_dir(a:key)
     call self.shrink_block()
   else
@@ -507,8 +511,9 @@ function! s:Player.process_genblock_mode(key) abort
     call self.extend_block(a:key)
   endif
 endfunction
+" }}}
 
-function! s:Player.process_move_mode(key) abort
+function! s:Player.process_move_mode(key) abort " {{{
   call cursor(self.position[0], self.position[1])
   if a:key ==# 'f'
     call self.hook_shot()
@@ -522,8 +527,9 @@ function! s:Player.process_move_mode(key) abort
     call self.move_if_possible(a:key)
   endif
 endfunction
+" }}}
 
-function! s:Player.toggle_mode() abort
+function! s:Player.toggle_mode() abort " {{{
   if self.mode == 0
     " TOGGLE TO GENERATE BLOCK MODE
     "echo 'GENERATE BLOCK MODE'
@@ -547,20 +553,24 @@ function! s:Player.toggle_mode() abort
     let self.mode = 0
   endif
 endfunction
+" }}}
 
-function! s:Player.move_if_possible(key) abort
+function! s:Player.move_if_possible(key) abort " {{{
   if self.is_movable(a:key)
     call self.move(a:key)
   endif
 endfunction
+" }}}
 
-function! s:Player.is_movable(key) abort
+function! s:Player.is_movable(key) abort " {{{
   let l:ch = s:getchar_on(a:key)
   return !s:is_block(l:ch)
 endfunction
+" }}}
 
-" Player moves to a specifiing direction.
-function! s:Player.move(dir) abort
+function! s:Player.move(dir) abort " {{{
+  " Player moves to a specifiing direction.
+
   if a:dir ==# 'h'
     execute 'normal! r hr' . s:PLAYER_CH
     let self.position[1] -= 1
@@ -571,21 +581,24 @@ function! s:Player.move(dir) abort
     let self.prev_dir = a:dir
   endif
 endfunction
+" }}}
 
-" Player jumps up.
-function! s:Player.jump_up() abort
+function! s:Player.jump_up() abort " {{{
+  " Player jumps up.
   execute 'normal! r kr' . s:PLAYER_CH
   let self.position[0] -= 1
 endfunction
+" }}}
 
-function! s:Player.fall() abort
+function! s:Player.fall() abort " {{{
   execute 'normal! r jr' . s:PLAYER_CH
   let self.position[0] += 1
   let self.genblock.set_position(copy(self.position))
 endfunction
+" }}}
 
-" Player hookshots before 'O'
-function! s:Player.hook_shot() abort
+function! s:Player.hook_shot() abort " {{{
+  " Player hookshots before 'O'
   if self.prev_dir ==# 'l'
     execute 'normal! r '
     execute 'normal! tOr' . s:PLAYER_CH
@@ -595,18 +608,22 @@ function! s:Player.hook_shot() abort
   endif
   let self.position[1] = col('.')
 endfunction
+" }}}
 
-function! s:Player.init_block() abort
+function! s:Player.init_block() abort " {{{
   let self.genblock = s:GenBlock.new(self.position)
 endfunction
+" }}}
 
-function! s:Player.extend_block(dir) abort
+function! s:Player.extend_block(dir) abort " {{{
   call self.genblock.extend(a:dir)
 endfunction
+" }}}
 
-function! s:Player.shrink_block() abort
+function! s:Player.shrink_block() abort " {{{
   call self.genblock.shrink()
 endfunction
+" }}}
 
 " }}}
 
