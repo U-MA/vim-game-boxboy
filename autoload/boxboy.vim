@@ -245,6 +245,83 @@ endfunction
 " }}}
 
 
+" Utility {{{
+
+function! s:set_cursor_to_player() abort " {{{
+  call cursor(s:player.position[0], s:player.position[1])
+endfunction
+" }}}
+
+function! s:move_cursor_to_start() abort " {{{
+  execute 'normal! gg0'
+  call search('S', 'W')
+endfunction
+" }}}
+
+function! s:replace(str) abort " {{{
+  let l:pos = getpos('.')
+  execute 'normal! ' . len(a:str) . 'x'
+  execute 'normal! i' . a:str
+  call cursor(l:pos[1], l:pos[2])
+endfunction
+" }}}
+
+function! s:move_ch_on_cursor_to(dir) abort " {{{
+  let l:ch  = s:getchar_on_cursor()
+  let l:pos = getpos('.')
+  execute 'normal! r ' . a:dir . 'r' . l:ch
+  call setpos('.', l:pos)
+endfunction
+" }}}
+
+function! s:reverse_dir(dir) abort " {{{
+  let l:reverse_dir = {'h' : 'l', 'j' : 'k', 'k' : 'j', 'l' : 'h'}
+  return l:reverse_dir[a:dir]
+endfunction
+" }}}
+
+function! s:setchar_on(dir, ch) abort " {{{
+  execute 'normal! ' . a:dir . 'r' . a:ch
+  execute 'normal! ' . s:reverse_dir(a:dir)
+endfunction
+" }}}
+
+function! s:getchar_on_cursor() abort " {{{
+  return getline('.')[col('.')-1]
+endfunction
+" }}}
+
+function! s:set_player_to_cursor() abort " {{{
+  execute 'normal! r' . s:PLAYER_CH
+endfunction
+" }}}
+
+function! s:getchar_on(dir) abort " {{{
+  if a:dir ==# 'h'
+    return getline('.')[col('.')-2]
+  elseif a:dir ==# 'j'
+    return getline(line('.')+1)[col('.')-1]
+  elseif a:dir ==# 'k'
+    return getline(line('.')-1)[col('.')-1]
+  elseif a:dir ==# 'l'
+    return getline('.')[col('.')]
+  endif
+endfunction
+" }}}
+
+function! s:is_block(ch) abort " {{{
+  for l:i in s:blocks
+    if l:i ==# a:ch
+      return 1
+    endif
+  endfor
+  return 0
+endfunction
+" }}}
+
+" }}}
+
+
 " Public functions {{{
 
 " function! boxboy#add_help_window(name, window_data) abort {{{
@@ -627,73 +704,6 @@ function! s:Player.shrink_block() abort " {{{
   call self.genblock.shrink()
 endfunction
 " }}}
-
-" }}}
-
-
-" Utility {{{
-
-function! s:set_cursor_to_player() abort
-  call cursor(s:player.position[0], s:player.position[1])
-endfunction
-
-function! s:replace(str) abort
-  let l:pos = getpos('.')
-  execute 'normal! ' . len(a:str) . 'x'
-  execute 'normal! i' . a:str
-  call cursor(l:pos[1], l:pos[2])
-endfunction
-
-function! s:move_ch_on_cursor_to(dir) abort
-  let l:ch  = s:getchar_on_cursor()
-  let l:pos = getpos('.')
-  execute 'normal! r ' . a:dir . 'r' . l:ch
-  call setpos('.', l:pos)
-endfunction
-
-function! s:move_cursor_to_start() abort
-  execute 'normal! gg0'
-  call search('S', 'W')
-endfunction
-
-function! s:reverse_dir(dir) abort
-  let l:reverse_dir = {'h' : 'l', 'j' : 'k', 'k' : 'j', 'l' : 'h'}
-  return l:reverse_dir[a:dir]
-endfunction
-
-function! s:setchar_on(dir, ch) abort
-  execute 'normal! ' . a:dir . 'r' . a:ch
-  execute 'normal! ' . s:reverse_dir(a:dir)
-endfunction
-
-function! s:getchar_on_cursor() abort
-  return getline('.')[col('.')-1]
-endfunction
-
-function! s:set_player_to_cursor() abort
-  execute 'normal! r' . s:PLAYER_CH
-endfunction
-
-function! s:getchar_on(dir) abort
-  if a:dir ==# 'h'
-    return getline('.')[col('.')-2]
-  elseif a:dir ==# 'j'
-    return getline(line('.')+1)[col('.')-1]
-  elseif a:dir ==# 'k'
-    return getline(line('.')-1)[col('.')-1]
-  elseif a:dir ==# 'l'
-    return getline('.')[col('.')]
-  endif
-endfunction
-
-function! s:is_block(ch) abort
-  for l:i in s:blocks
-    if l:i ==# a:ch
-      return 1
-    endif
-  endfor
-  return 0
-endfunction
 
 " }}}
 
