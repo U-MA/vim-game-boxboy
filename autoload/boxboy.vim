@@ -382,16 +382,19 @@ let s:blocks = [ '=', '#', 'O' ]
 " }}}
 
 
-" Change view depending on player's mode {{{
+" class Hilighter {{{
 
-" ['h', 'j', 'k', 'l']
-let s:save_ch = []
+let s:Highlighter = { 'save_ch' : [] }
 
-function! s:set_hilight_ch() abort
+function! s:Highlighter.new() abort
+  return deepcopy(s:Highlighter)
+endfunction
+
+function! s:Highlighter.set() abort
   let l:arrows = {'h' : '<', 'j' : 'v', 'k' : '^', 'l' : '>'}
   for l:dir in ['h', 'j', 'k', 'l']
     let l:ch = s:getchar_on(l:dir)
-    call add(s:save_ch, l:ch)
+    call add(self.save_ch, l:ch)
     if l:dir =~# '[hkl]'
       if !s:is_block(l:ch) && l:ch !=# s:PLAYER_CH && l:ch !=# 'G'
         call s:setchar_on(l:dir, l:arrows[l:dir])
@@ -404,16 +407,16 @@ function! s:set_hilight_ch() abort
   endfor
 endfunction
 
-function! s:reset_hilight_ch() abort
-  if s:save_ch == []
+function! s:Highlighter.reset() abort
+  if empty(self.save_ch)
     return
   endif
 
-  call s:setchar_on('h', s:save_ch[0])
-  call s:setchar_on('j', s:save_ch[1])
-  call s:setchar_on('k', s:save_ch[2])
-  call s:setchar_on('l', s:save_ch[3])
-  let s:save_ch = []
+  call s:setchar_on('h', self.save_ch[0])
+  call s:setchar_on('j', self.save_ch[1])
+  call s:setchar_on('k', self.save_ch[2])
+  call s:setchar_on('l', self.save_ch[3])
+  let self.save_ch = []
 endfunction
 
 " }}}
@@ -426,11 +429,12 @@ endfunction
 "   curosr(self.parent_position[0] + self.position[0] - 1,
 "     \    self.parent_position[1] + self.position[1] - 1)
 let s:GenBlock = { 'position' : [1, 1], 'dirctions' : {}, 'head' : [0, 0],
-                 \ 'length' : 0, 'parent_position' : [1, 1], 'is_check' : 1 }
+                 \ 'length' : 0, 'parent_position' : [1, 1], 'is_check' : 1, 'highlighter' : {} }
 function! s:GenBlock.new(parent_position) abort
   let l:genblock                 = deepcopy(s:GenBlock)
   let l:genblock.directions      = s:Vector.new()
   let l:genblock.parent_position = a:parent_position
+  let l:genblock.highlighter     = s:Highlighter.new()
   return l:genblock
 endfunction
 
@@ -507,25 +511,25 @@ function! s:GenBlock.extend(dir) abort
   call cursor(self.parent_position[0] + self.position[0] + self.head[0] - 1,
     \         self.parent_position[1] + self.position[1] + self.head[1] - 1)
 
-  call s:reset_hilight_ch()
+  call self.highlighter.reset()
   if self.is_extendable(a:dir)
     execute 'normal! ' . a:dir . 'r' . s:gen_block_ch
     call self.move_head(a:dir)
     call self.directions.push_back(a:dir)
     let self.length += 1
   endif
-  call s:set_hilight_ch()
+  call self.highlighter.set()
 endfunction
 
 function! s:GenBlock.shrink() abort
   call cursor(self.parent_position[0] + self.position[0] + self.head[0] - 1,
     \         self.parent_position[1] + self.position[1] + self.head[1] - 1)
-  call s:reset_hilight_ch()
+  call self.highlighter.reset()
   let l:ch = s:reverse_dir(self.directions.pop_back())
   execute 'normal! r ' . l:ch
   call self.move_head(l:ch)
   let self.length -= 1
-  call s:set_hilight_ch()
+  call self.highlighter.set()
 endfunction
 
 " class GenBlock private functions {{{
@@ -641,11 +645,11 @@ function! s:Player.toggle_mode() abort " {{{
     " TOGGLE TO GENERATE BLOCK MODE
     call self.ready_to_generate()
     let self.mode = 1
-    call s:set_hilight_ch()
+    call self.genblock.highlighter.set()
   else
     " TOGGLE TO PLAYER MOVE MODE
     call self.genblock.set_cursor_to_head()
-    call s:reset_hilight_ch()
+    call self.genblock.highlighter.reset()
 
     call s:transfer_to_game(self.genblock)
     let self.genblock = s:GenBlock.new(copy(self.position))
