@@ -486,9 +486,9 @@ function! s:GenBlock.set_position(position) abort
   let self.position = copy(a:position)
 endfunction
 
-function! s:GenBlock.set_parent_position(parent_position) abort
-  let self.parent_position = copy(a:parent_position)
-endfunction
+"function! s:GenBlock.set_parent_position(parent_position) abort
+"  let self.parent_position = copy(a:parent_position)
+"endfunction
 
 function! s:GenBlock.set_cursor_to_head() abort
   call cursor(self.parent_position[0] + self.position[0] + self.head[0] - 1,
@@ -560,13 +560,19 @@ endfunction
 "   mode 1 is BLOCK GENERATE MODE
 " prev_dir is a direction which player move to previously
 " genblock is GenBlock class
-let s:Player = { 'position' : [1, 1] , 'mode' : 0, 'prev_dir' : 'l', 'genblock' : {} }
+let s:Player = { 'position' : [1, 1] , 'mode' : 0, 'prev_dir' : 'l',
+  \              'genblock' : {}, 'parent_position' : [1, 1] }
 
 function! s:Player.new(position) abort " {{{
   let l:player          = deepcopy(s:Player)
   let l:player.position = copy(a:position)
-  let l:player.genblock = s:GenBlock.new(l:player.position)
+  "let l:player.genblock = s:GenBlock.new(a:position)
   return l:player
+endfunction
+" }}}
+
+function! s:Player.set_parent_position(parent_position) abort " {{{
+  let self.parent_position = copy(a:parent_position)
 endfunction
 " }}}
 
@@ -587,7 +593,8 @@ endfunction
 " }}}
 
 function! s:Player.fall_if_possible() abort " {{{
-  call cursor(self.position[0], self.position[1])
+  call cursor(self.position[0] + self.parent_position[0] - 1,
+    \         self.position[1] + self.parent_position[1] - 1)
   if !s:is_block(s:getchar_on('j'))
     call self.fall()
   endif
@@ -614,7 +621,8 @@ endfunction
 " }}}
 
 function! s:Player.process_move_mode(key) abort " {{{
-  call cursor(self.position[0], self.position[1])
+  call cursor(self.position[0] + self.parent_position[0] - 1,
+    \         self.position[1] + self.parent_position[1] - 1)
   if a:key ==# 'f'
     if self.can_hook()
       call self.hook_shot()
@@ -634,9 +642,10 @@ endfunction
 function! s:Player.ready_to_generate() abort " {{{
   call s:game_erase_genblock()
   call self.fall_if_possible()
-  call cursor(self.position[0], self.position[1])
+  call cursor(self.position[0] + self.parent_position[0] - 1,
+    \         self.position[1] + self.parent_position[1] - 1)
 
-  let self.genblock = s:GenBlock.new(copy(self.position))
+  let self.genblock = s:GenBlock.new(getpos('.')[1:2])
 endfunction
 " }}}
 
@@ -652,7 +661,7 @@ function! s:Player.toggle_mode() abort " {{{
     call self.genblock.highlighter.reset()
 
     call s:transfer_to_game(self.genblock)
-    let self.genblock = s:GenBlock.new(copy(self.position))
+    let self.genblock = {}
 
     let self.mode = 0
   endif
@@ -716,9 +725,9 @@ function! s:Player.hook_shot() abort " {{{
 endfunction
 " }}}
 
-function! s:Player.init_block() abort " {{{
-  let self.genblock = s:GenBlock.new(self.position)
-endfunction
+"function! s:Player.init_block() abort " {{{
+"  let self.genblock = s:GenBlock.new(self.position)
+"endfunction
 " }}}
 
 function! s:Player.extend_block(dir) abort " {{{
@@ -751,14 +760,13 @@ function! s:HelpWindow.new(name, window, start, script) abort
 
   " player position is a relative position from upper-left of window
   let l:ret.player = s:Player.new(copy(a:start))
-  echomsg string(l:ret.player.genblock.head)
 
   return l:ret
 endfunction
 
 function! s:HelpWindow.set_pos(row, col) abort
-  let self.pos[0] = a:row
-  let self.pos[1] = a:col
+  let self.pos = [a:row, a:col]
+  call self.player.set_parent_position([a:row, a:col])
 endfunction
 
 " }}}
@@ -940,26 +948,19 @@ endfunction
 function! s:cb_init_help_window(help_window) abort " {{{
   call s:cb_close_help_window(a:help_window, a:help_window.pos)
   call s:cb_open_help_window(a:help_window, a:help_window.pos)
-  let a:help_window.player.y = a:help_window.start[0]
-  let a:help_window.player.x = a:help_window.start[1]
+  let a:help_window.player.position = copy(a:help_window.start)
 endfunction
 " }}}
 
 function! s:cb_player_in_window_moves(help_window, player, key) abort " {{{
-  let l:abs_position = [
-    \ a:help_window.pos[0]+a:player.position[0]-1,
-    \ a:help_window.pos[1]+a:player.position[1]-1]
-  call cursor(l:abs_position[0], l:abs_position[1])
-  call a:player.move(a:key)
+  call a:player.process_move_mode(a:key)
 endfunction
 " }}}
 
 function! s:cb_player_generate_block(help_window, player, key) abort
-  let l:abs_position = [
-    \ a:help_window.pos[0]+a:player.position[0]-1,
-    \ a:help_window.pos[1]+a:player.position[1]-1]
-  call cursor(l:abs_position[0], l:abs_position[1])
-  call a:player.extend_block(a:key)
+  echo a:player.genblock.position
+  echo a:player.genblock.parent_position
+  call a:player.process_genblock_mode(a:key)
 endfunction
 
 function! s:cb_player_toggle_mode(help_window, player) abort
@@ -1069,7 +1070,7 @@ function! s:cb_open_help_window(help_window, upper_left) abort
   if !s:is_draw_hw
     let s:is_draw_hw = 1
     call s:Drawer.draw_help_window(a:help_window, a:upper_left[0], a:upper_left[1])
-    let a:help_window.pos = copy(a:upper_left)
+    call a:help_window.set_pos(a:upper_left[0], a:upper_left[1])
 
     " Register a window actions to SequenceManager
     let l:sequence = s:create_sequence_with_script(a:help_window)
