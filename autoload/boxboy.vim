@@ -468,13 +468,13 @@ endfunction
 
 function! s:GenBlock.fall_if_possible() abort
   if self.can_fall()
+    call self.remove_self()
+    let self.position[0] += 1
     call cursor(self.parent_position[0] + self.position[0] - 1,
       \         self.parent_position[1] + self.position[1] - 1)
-    for l:block in self.directions.range()
-      execute 'normal! ' . l:block
-      call s:move_ch_on_cursor_to('j')
+    for l:dir in self.directions.range()
+      execute 'normal! ' . l:dir . 'r#'
     endfor
-    let self.position[0] += 1
   endif
 endfunction
 
@@ -1250,7 +1250,7 @@ function! s:boxboy_main() abort " {{{
   highlight default link boxboy_player boxboy_player_hi
   " }}}
 
-  let s:default_room_name = '0'
+  let s:default_room_name = 'test_play'
 
   " s:room is the current room which player is in.
   let s:room  = s:RoomManager.get_room(s:default_room_name)
