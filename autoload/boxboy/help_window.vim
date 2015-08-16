@@ -69,3 +69,18 @@ call boxboy#add_help_window('generate_block', {
   \ 'script' : 'ltlt  ',
   \})
 
+call boxboy#add_help_window('genblock_stairs', {
+  \ 'name'   : 'genblock_stairs',
+  \ 'window' : [
+  \   '+-----------+',
+  \   '|           |',
+  \   '|           |',
+  \   '|   A       |',
+  \   '|===========|',
+  \   '|   t k l   |',
+  \   '+-----------+',
+  \ ],
+  \ 'start'  : [4, 5],
+  \ 'script' : 'tllkt',
+  \})
+
