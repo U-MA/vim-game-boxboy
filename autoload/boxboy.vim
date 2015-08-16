@@ -486,10 +486,6 @@ function! s:GenBlock.set_position(position) abort
   let self.position = copy(a:position)
 endfunction
 
-"function! s:GenBlock.set_parent_position(parent_position) abort
-"  let self.parent_position = copy(a:parent_position)
-"endfunction
-
 function! s:GenBlock.set_cursor_to_head() abort
   call cursor(self.parent_position[0] + self.position[0] + self.head[0] - 1,
     \         self.parent_position[1] + self.position[1] + self.head[1] - 1)
@@ -566,7 +562,6 @@ let s:Player = { 'position' : [1, 1] , 'mode' : 0, 'prev_dir' : 'l',
 function! s:Player.new(position) abort " {{{
   let l:player          = deepcopy(s:Player)
   let l:player.position = copy(a:position)
-  "let l:player.genblock = s:GenBlock.new(a:position)
   return l:player
 endfunction
 " }}}
@@ -706,7 +701,7 @@ endfunction
 function! s:Player.fall() abort " {{{
   execute 'normal! r jr' . s:PLAYER_CH
   let self.position[0] += 1
-  if self.genblock.length
+  if !empty(self.genblock) && self.genblock.length
     call self.genblock.set_position(self.position)
   endif
 endfunction
@@ -1091,13 +1086,6 @@ function! s:cb_close_help_window(help_window, upper_left) abort " {{{
     " Erase a window actions to Sequencemanager
     call s:SequenceManager.clear()
   endif
-endfunction
-" }}}
-
-function! s:cb_help_window_actions() abort " {{{
-  " This function writes a behavior of player in help window
-  " TODO: WRITE
-  echo 'cb_help_window_actions'
 endfunction
 " }}}
 
