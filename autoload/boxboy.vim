@@ -945,15 +945,17 @@ function! s:cb_player_in_window_moves(help_window, player, key) abort " {{{
 endfunction
 " }}}
 
-function! s:cb_player_generate_block(help_window, player, key) abort
+function! s:cb_player_generate_block(help_window, player, key) abort " {{{
   echo a:player.genblock.position
   echo a:player.genblock.parent_position
   call a:player.process_genblock_mode(a:key)
 endfunction
+" }}}
 
-function! s:cb_player_toggle_mode(help_window, player) abort
+function! s:cb_player_toggle_mode(help_window, player) abort " {{{
   call a:player.toggle_mode()
 endfunction
+" }}}
 
 function! s:cb_set_hl_specifing_string(str) abort " {{{
   execute 'highlight boxboy_' . a:str . ' ctermfg=darkgray'
