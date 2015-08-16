@@ -741,8 +741,6 @@ endfunction
 " }}}
 
 
-" Help window {{{
-
 " class HelpWindow {{{
 
 let s:HelpWindow = { 'name' : '', 'window' : [], 'pos' : [0, 0], 'start' : [0, 0], 'script' : '', 'turn' : 0, 'player' : {} }
@@ -783,8 +781,6 @@ function! s:HelpWindowManager.get_window(name) abort
 endfunction
 
 " }}}
-
-"}}}
 
 " class Drawer {{{
 
@@ -828,7 +824,6 @@ endfunction
 
 " }}}
 
-" Stages {{{
 
 " class Stage {{{
 
@@ -916,8 +911,6 @@ let s:stage_set_files = split(glob(s:boxboy_dir[0] . '/*.vim'), '\n')
 for s:stage_set_file in s:stage_set_files
   execute 'source ' . s:stage_set_file
 endfor
-
-" }}}
 
 
 function! s:game_has_genblock() abort " {{{
