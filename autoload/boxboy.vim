@@ -644,7 +644,7 @@ endfunction
 " }}}
 
 function! s:Player.ready_to_generate() abort " {{{
-  if !empty(self.parent)
+  if empty(self.parent)
     call s:game_erase_genblock()
   else
     if has_key(self.parent, 'genblock')
@@ -670,7 +670,7 @@ function! s:Player.toggle_mode() abort " {{{
     call self.genblock.set_cursor_to_head()
     call self.genblock.highlighter.reset()
 
-    if !empty(self.parent)
+    if empty(self.parent)
       " transfer genblock to game
       call s:transfer_to_game(self.genblock)
     else
@@ -781,6 +781,7 @@ endfunction
 function! s:HelpWindow.set_pos(row, col) abort
   let self.pos = [a:row, a:col]
   call self.player.set_parent_position([a:row, a:col])
+  call self.player.set_parent(self)
 endfunction
 
 " }}}
