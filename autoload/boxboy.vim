@@ -556,8 +556,11 @@ endfunction
 "   mode 1 is BLOCK GENERATE MODE
 " prev_dir is a direction which player move to previously
 " genblock is GenBlock class
+" parent is an owner of this player. if empty(parent) is true,
+" the owner of this player is game. parent is read only.
+" TODO: FIX
 let s:Player = { 'position' : [1, 1] , 'mode' : 0, 'prev_dir' : 'l',
-  \              'genblock' : {}, 'parent_position' : [1, 1] }
+  \              'genblock' : {}, 'parent_position' : [1, 1], 'parent' : {} }
 
 function! s:Player.new(position) abort " {{{
   let l:player          = deepcopy(s:Player)
@@ -565,6 +568,10 @@ function! s:Player.new(position) abort " {{{
   return l:player
 endfunction
 " }}}
+
+function! s:Player.set_parent(parent) abort
+  let self.parent = a:parent
+endfunction
 
 function! s:Player.set_parent_position(parent_position) abort " {{{
   let self.parent_position = copy(a:parent_position)
@@ -637,7 +644,13 @@ endfunction
 " }}}
 
 function! s:Player.ready_to_generate() abort " {{{
-  call s:game_erase_genblock()
+  if !empty(self.parent)
+    call s:game_erase_genblock()
+  else
+    if has_key(self.parent, 'genblock')
+      call self.parent.genblock.remove_self()
+    endif
+  endif
   call self.fall_if_possible()
   call cursor(self.position[0] + self.parent_position[0] - 1,
     \         self.position[1] + self.parent_position[1] - 1)
@@ -657,7 +670,13 @@ function! s:Player.toggle_mode() abort " {{{
     call self.genblock.set_cursor_to_head()
     call self.genblock.highlighter.reset()
 
-    call s:transfer_to_game(self.genblock)
+    if !empty(self.parent)
+      " transfer genblock to game
+      call s:transfer_to_game(self.genblock)
+    else
+      " transfer genblock to parent object
+      let self.parent.genblock = self.genblock
+    endif
     let self.genblock = {}
 
     let self.mode = 0
