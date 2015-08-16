@@ -600,7 +600,9 @@ function! s:Player.process_genblock_mode(key) abort " {{{
   if self.genblock.is_shrink_dir(a:key)
     call self.shrink_block()
   else
-    call self.extend_block(a:key)
+    if self.genblock.length < s:stage.get_gen_length_max() 
+      call self.extend_block(a:key)
+    endif
   endif
 endfunction
 " }}}
