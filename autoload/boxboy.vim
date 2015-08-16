@@ -1000,7 +1000,7 @@ endfunction
 let s:toggle_on = 0
 function! s:create_sequence_with_script(help_window) abort
   let l:sequence = s:Sequence.new()
-  call l:sequence.add(s:Wait.new(5000))
+  call l:sequence.add(s:Wait.new(2000))
   for l:i in range(0, len(a:help_window.script)-1)
     let l:ch = a:help_window.script[l:i]
     let l:hl_name = s:get_hilight_name(l:ch)
@@ -1014,7 +1014,7 @@ function! s:create_sequence_with_script(help_window) abort
       call l:sequence.add(s:Wait.new(500))
       call l:sequence.add(
         \ s:Action.new('s:cb_reset_hl_specifing_string', [l:hl_name]))
-      call l:sequence.add(s:Wait.new(5000))
+      call l:sequence.add(s:Wait.new(1000))
     else
       if !s:toggle_on
         call l:sequence.add(
@@ -1025,7 +1025,7 @@ function! s:create_sequence_with_script(help_window) abort
         call l:sequence.add(s:Wait.new(500))
         call l:sequence.add(
           \ s:Action.new('s:cb_reset_hl_specifing_string', [l:hl_name]))
-        call l:sequence.add(s:Wait.new(5000))
+        call l:sequence.add(s:Wait.new(1000))
       else
         call l:sequence.add(
           \ s:Action.new('s:cb_set_hl_specifing_string', [l:hl_name]))
@@ -1035,7 +1035,7 @@ function! s:create_sequence_with_script(help_window) abort
         call l:sequence.add(s:Wait.new(500))
         call l:sequence.add(
           \ s:Action.new('s:cb_reset_hl_specifing_string', [l:hl_name]))
-        call l:sequence.add(s:Wait.new(5000))
+        call l:sequence.add(s:Wait.new(2000))
       endif
     endif
   endfor
