@@ -1145,6 +1145,32 @@ function! s:ready_to_start() abort " {{{
 endfunction
 " }}}
 
+function! s:game_erase_genblock() abort " {{{
+  if s:game_has_genblock()
+    call s:genblock_in_stage.remove_self()
+    let s:genblock_in_stage = {}
+  endif
+endfunction
+" }}}
+
+function! s:setup_view(stage) abort " {{{
+  " This function set up a view which game player watches.
+  call s:Drawer.draw_stage(s:stage)
+  call s:Drawer.draw_information()
+endfunction
+" }}}
+
+
+function! s:open_gametab() abort " {{{
+  tabnew boxboy
+endfunction
+" }}}
+
+function! s:close_gametab() abort " {{{
+  bdelete!
+endfunction
+" }}}
+
 function! s:update() abort " {{{
   " This function is kernel of this game.
 
@@ -1172,31 +1198,6 @@ function! s:update() abort " {{{
   call s:EventDispatcher.check()
 
   return 1
-endfunction
-" }}}
-
-function! s:game_erase_genblock() abort " {{{
-  if s:game_has_genblock()
-    call s:genblock_in_stage.remove_self()
-    let s:genblock_in_stage = {}
-  endif
-endfunction
-" }}}
-
-function! s:open_gametab() abort " {{{
-  tabnew boxboy
-endfunction
-" }}}
-
-function! s:close_gametab() abort " {{{
-  bdelete!
-endfunction
-" }}}
-
-function! s:setup_view(stage) abort " {{{
-  " This function set up a view which game player watches.
-  call s:Drawer.draw_stage(s:stage)
-  call s:Drawer.draw_information()
 endfunction
 " }}}
 
