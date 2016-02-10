@@ -3,6 +3,7 @@ call boxboy#add_script('user_guide', [
   \ '',
   \ '   h   : Move left',
   \ '   l   : Move right',
+  \ '   x   : erase boxes',
   \ '   t   : toggle to generate box mode or move mode',
   \ '<space>: Jump',
   \ '',
@@ -13,5 +14,5 @@ call boxboy#add_script('user_guide', [
 call boxboy#add_script('congrats', [
   \ 'Thank you for playing',
   \ '',
-  \ 'Press any key to finish this game',
+  \ 'Press Ctrl-C to finish this game',
   \ ])
