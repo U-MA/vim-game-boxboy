@@ -3,6 +3,7 @@ call boxboy#add_script('user_guide', [
   \ '',
   \ '   h   : Move left',
   \ '   l   : Move right',
+  \ '   t   : toggle to generate box mode or move mode',
   \ '<space>: Jump',
   \ '',
   \ '   r   : Restart',
