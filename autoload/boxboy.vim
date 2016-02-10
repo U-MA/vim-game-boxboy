@@ -597,9 +597,9 @@ endfunction
 function! s:Player.fall_if_possible() abort " {{{
   call cursor(self.position[0] + self.parent_position[0] - 1,
     \         self.position[1] + self.parent_position[1] - 1)
-  if !s:is_block(s:getchar_on('j'))
+  while !s:is_block(s:getchar_on('j'))
     call self.fall()
-  endif
+  endwhile
 endfunction
 " }}}
 
@@ -1301,9 +1301,9 @@ function! s:boxboy_main() abort " {{{
     if l:fps < l:min_fps
       let l:min_fps = l:fps
     endif
-    call setline(s:stage_bottom_line+1, string(l:fps))
-    call setline(s:stage_bottom_line+2, string(l:ave_fps))
-    call setline(line('$'), string(l:min_fps))
+    " call setline(s:stage_bottom_line+1, string(l:fps))
+    " call setline(s:stage_bottom_line+2, string(l:ave_fps))
+    " call setline(line('$'), string(l:min_fps))
   endwhile
   call s:close_gametab()
 endfunction
