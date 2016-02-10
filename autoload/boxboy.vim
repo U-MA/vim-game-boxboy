@@ -43,7 +43,12 @@ function! s:EventDispatcher.check() abort
     let l:position = l:listner.position
     if (l:position[0] == 0 || l:position[0] == s:player.position[0]) &&
      \ (l:position[1] == 0 || l:position[1] == s:player.position[1])
-      call call(l:listner.func_ref, l:listner.args)
+
+      let l:ret = call(l:listner.func_ref, l:listner.args)
+
+      if (l:ret)
+        return 1
+      endif
     endif
   endfor
 endfunction
@@ -1071,6 +1076,8 @@ function! s:cb_go_to_next_stage() abort " {{{
     call s:EventDispatcher.clear()
     call s:Drawer.draw_appriciate()
     call getchar()
+    return 1
+    finish
   endif
 endfunction
 " }}}
@@ -1219,7 +1226,9 @@ function! s:update() abort " {{{
   call s:genblock_fall_in_stage()
 
   call s:SequenceManager.run()
-  call s:EventDispatcher.check()
+  if s:EventDispatcher.check() == 1
+    return 0
+  endif
 
   return 1
 endfunction
